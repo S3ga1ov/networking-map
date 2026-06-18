@@ -1,34 +1,57 @@
 # Networking Map — Obsidian plugin
 
-Build a **networking / connection map** inside Obsidian: an author point in the
-center, three drag-resizable trust rings (*Круг поддержки → продуктивности →
-развития*), two axes splitting the plane into four renameable quadrants
-(*Работа / Семья / Друзья / Услуги*), people placed as colored circles, and
-layered connections between them.
+Build a **networking / connection map** inside Obsidian: you sit in the center,
+surrounded by three drag-resizable trust rings (*Круг поддержки → продуктивности
+→ развития*), two axes splitting the plane into four renameable sectors of life
+(*Работа / Семья / Друзья / Услуги*), people placed as colored points, and
+layered, directional connections between them.
 
 It feels like an online whiteboard (drag, zoom, interactive panels), but the
 data lives in your vault: each map is a `.netmap` file, and per-person
 «примечания» can be promoted to real Markdown notes that Dataview/Bases can
 query.
 
+## How it works
+
+The map is a method, not just a diagram (open the **`?`** button bottom-left for
+the in-app guide):
+
+- **You are the center.** Everything is drawn relative to you, so you don't
+  "get lost" in your own relationships.
+- **Three trust rings** show how close a connection is: **Круг поддержки**
+  (innermost — family and closest friends, no material interest), **Круг
+  продуктивности** (middle — your stable connections; the goal is to "pull"
+  people inward and keep the bond stable), and **Круг развития** (outer — the
+  horizon, new not-yet-established contacts). Drag a ring's edge to resize it.
+- **Sectors (axes)** divide the plane into areas of life and can be of different
+  sizes depending on how full of connections each area is.
+- **Connection style encodes the relationship**, and **arrows encode who takes
+  the initiative** — drawing links between your contacts (not just to you) is
+  how you read **network density**.
+
 ## Features
 
-- **Polar canvas** — center author point, 3 concentric trust rings, 4 quadrant
-  sectors; pan, zoom, and drag-to-resize each ring.
-- **People** — click anywhere to drop a person (Фамилия / Имя / Отчество),
+- **Polar canvas** — center author point, 3 concentric trust rings, 4 sectors;
+  pan, zoom, and drag-to-resize each ring.
+- **Double-click to rename** any sector, ring, or the center name in place.
+- **People** — click empty space to drop a person (Фамилия / Имя / Отчество),
   choose a color (голубой / розовый / серый) and an importance size (обычный /
   важный / ключевой — larger = more important); the node shows ФИ initials.
   Drag to reposition.
+- **Connections** — 5 semantic styles, each bound to a **layer**:
+  intense (bold black), regular (thin black), irregular (dashed black),
+  positive (thin green), and strained (thin red).
+- **Direction / initiative** — per connection: no arrows, initiative from the
+  first, from the second, or mutual (arrows both ways).
+- **Notes panel** (right) — re-click a person to edit name/color/size, write
+  inline notes, delete, or start a connection. **«Перенести в заметку»** creates
+  a Markdown note in the vault and links it (then «Открыть заметку» / «Отвязать»).
+- **Layers** — default «Общая схема связей» plus your own; toggle/filter
+  top-left. Layers carry only connections; people positions are shared across
+  all layers, so you can view the same network from different angles.
 - **Localization** — interface in Russian or English; follows Obsidian's UI
   language by default, with a setting override. New maps get localized default
   labels.
-- **Notes panel** (right) — re-click a person to edit name/color, write inline
-  notes (md/json), delete, or start a connection. «Открыть как заметку» creates
-  a Markdown note in the vault and links it.
-- **Connections** — 4 styles (чёрная полужирная / тонкая / пунктирная /
-  красная тонкая), each bound to a **layer**.
-- **Layers** — default «Общая схема связей» plus your own; filter top-left.
-  Layers carry only links; people positions are universal.
 - **Legend** bottom-left; **toolbar** top-right (zoom, undo/redo, export).
 - **Export** — PNG, standalone SVG, or JSON (the `.netmap` content itself).
 - **Undo/redo** (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`), `Esc` to cancel, `Delete`
@@ -50,7 +73,7 @@ src/
 ```
 
 The `.netmap` file is pretty-printed JSON and doubles as the human-readable
-export format. See [the approved plan](#) for the full design.
+export format.
 
 ## Build
 
@@ -78,12 +101,11 @@ For development you can symlink the repo folder in place of step 1–2 so
 
 ## Settings
 
-- **Папка для заметок о людях** — where «Открыть как заметку» creates notes
-  (default `Networking/People`).
-- **Имя в центре по умолчанию** — center label for new maps.
-- **Записывать свойства в frontmatter** — mirror color/coordinates into note
-  frontmatter (`nm-color`, `nm-x`, `nm-y`) for Dataview/Bases queries.
 - **Язык интерфейса / Interface language** — auto / Русский / English.
+- **Папка для заметок о людях** — where «Перенести в заметку» creates notes
+  (default `Networking/People`).
+- **Записывать свойства в frontmatter** — mirror a person's color and
+  coordinates into note properties for Dataview/Bases queries.
 
 ## License
 
