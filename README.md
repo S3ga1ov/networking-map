@@ -1,5 +1,7 @@
 # Networking Map — Obsidian plugin
 
+[![CI](https://github.com/S3ga1ov/networking-map/actions/workflows/ci.yml/badge.svg)](https://github.com/S3ga1ov/networking-map/actions/workflows/ci.yml)
+
 Build a **networking / connection map** inside Obsidian: you sit in the center,
 surrounded by three drag-resizable trust rings (*Круг поддержки → продуктивности
 → развития*), two axes splitting the plane into four renameable sectors of life
