@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMapStore, useMapStoreApi } from "./StoreContext";
 import { useT } from "./LangContext";
+import { useConfirm } from "./ConfirmContext";
 import {
   addLayer,
   deleteLayer,
@@ -13,6 +14,7 @@ import {
 export function LayerFilter() {
   const api = useMapStoreApi();
   const t = useT();
+  const confirm = useConfirm();
   const layers = useMapStore((s) => s.doc.layers);
   const activeLayerId = useMapStore((s) => s.doc.activeLayerId);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -82,9 +84,11 @@ export function LayerFilter() {
                 <button
                   className="nm-icon-btn nm-layer-del"
                   title={t("layers.delete")}
-                  onClick={() =>
-                    api.getState().apply((doc) => deleteLayer(doc, layer.id))
-                  }
+                  onClick={() => {
+                    void confirm({ message: t("confirm.layer") }).then((ok) => {
+                      if (ok) api.getState().apply((doc) => deleteLayer(doc, layer.id));
+                    });
+                  }}
                 >
                   ×
                 </button>

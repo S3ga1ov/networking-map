@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useMapStore, useMapStoreApi } from "../StoreContext";
 import { useT } from "../LangContext";
+import { useConfirm } from "../ConfirmContext";
 import {
   removeSector,
   renameSector,
@@ -21,6 +22,7 @@ interface Props {
 export function AxesOverlay({ center, svg }: Props) {
   const api = useMapStoreApi();
   const t = useT();
+  const confirm = useConfirm();
   const circles = useMapStore((s) => s.doc.circles);
   const sectors = useMapStore((s) => s.doc.axes.sectors);
   const zoom = useMapStore((s) => s.viewport.zoom);
@@ -149,9 +151,11 @@ export function AxesOverlay({ center, svg }: Props) {
                     <button
                       className="nm-sector-tool nm-st-remove"
                       title={t("sector.remove")}
-                      onClick={() =>
-                        api.getState().apply((doc) => removeSector(doc, sec.id))
-                      }
+                      onClick={() => {
+                        void confirm({ message: t("confirm.sector") }).then((ok) => {
+                          if (ok) api.getState().apply((doc) => removeSector(doc, sec.id));
+                        });
+                      }}
                     >
                       ×
                     </button>

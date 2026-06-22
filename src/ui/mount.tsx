@@ -6,6 +6,7 @@ import { StoreContext } from "./StoreContext";
 import { EnvContext } from "./EnvContext";
 import { LangContext } from "./LangContext";
 import { PrefsContext, type Prefs } from "./PrefsContext";
+import { ConfirmProvider } from "./ConfirmContext";
 import { makeT, type Lang } from "./i18n";
 import type { MapState } from "./store";
 import type { HostEnv } from "./env";
@@ -29,7 +30,9 @@ export function mountApp(
         <PrefsContext.Provider value={prefs}>
           <EnvContext.Provider value={env}>
             <StoreContext.Provider value={store}>
-              <App />
+              <ConfirmProvider>
+                <App />
+              </ConfirmProvider>
             </StoreContext.Provider>
           </EnvContext.Provider>
         </PrefsContext.Provider>

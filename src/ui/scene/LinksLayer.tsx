@@ -1,5 +1,6 @@
 import { useMapStore, useMapStoreApi } from "../StoreContext";
 import { useT } from "../LangContext";
+import { useConfirm } from "../ConfirmContext";
 import {
   LINK_GREEN,
   LINK_RED,
@@ -34,6 +35,8 @@ function arrowMarkerId(style: LinkStyle): string {
  */
 export function LinksLayer() {
   const api = useMapStoreApi();
+  const t = useT();
+  const confirm = useConfirm();
   const links = useMapStore((s) => s.doc.links);
   const layers = useMapStore((s) => s.doc.layers);
   const people = useMapStore((s) => s.doc.people);
@@ -147,8 +150,11 @@ export function LinksLayer() {
                   api.getState().apply((doc) => setLinkDirection(doc, link.id, d))
                 }
                 onDelete={() => {
-                  api.getState().apply((doc) => removeLink(doc, link.id));
-                  api.getState().selectLink(null);
+                  void confirm({ message: t("confirm.connection") }).then((ok) => {
+                    if (!ok) return;
+                    api.getState().apply((doc) => removeLink(doc, link.id));
+                    api.getState().selectLink(null);
+                  });
                 }}
               />
             )}

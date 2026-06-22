@@ -6,6 +6,8 @@ import { Legend } from "./Legend";
 import { Toolbar } from "./Toolbar";
 import { Help } from "./Help";
 import { useMapStoreApi } from "./StoreContext";
+import { useT } from "./LangContext";
+import { useConfirm } from "./ConfirmContext";
 import { removeLink } from "../core/commands";
 
 /**
@@ -14,6 +16,8 @@ import { removeLink } from "../core/commands";
  */
 export function App() {
   const api = useMapStoreApi();
+  const t = useT();
+  const confirm = useConfirm();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -37,8 +41,11 @@ export function App() {
         const linkId = state.selectedLinkId;
         if (linkId) {
           e.preventDefault();
-          state.apply((doc) => removeLink(doc, linkId));
-          state.selectLink(null);
+          void confirm({ message: t("confirm.connection") }).then((ok) => {
+            if (!ok) return;
+            state.apply((doc) => removeLink(doc, linkId));
+            state.selectLink(null);
+          });
         }
       } else if (e.key === "Escape") {
         state.cancelLink();
@@ -48,7 +55,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [api]);
+  }, [api, confirm, t]);
 
   return (
     <div className="nm-root">
