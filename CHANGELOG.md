@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/S3ga1ov/networking-map/compare/0.2.0...0.3.0) (2026-06-22)
+
+
+### Features
+
+* optional node label to control a person's initials ([6ed5626](https://github.com/S3ga1ov/networking-map/commit/6ed562658096db6313f8037dc47c52e1fad5870e))
+
 ## [0.2.0](https://github.com/S3ga1ov/networking-map/compare/0.1.0...0.2.0) (2026-06-22)
 
 
