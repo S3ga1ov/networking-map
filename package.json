@@ -1,6 +1,6 @@
 {
   "name": "networking-map",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Obsidian plugin: a polar networking/connection map (online-whiteboard style).",
   "main": "main.js",
   "scripts": {
