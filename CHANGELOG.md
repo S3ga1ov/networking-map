@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/S3ga1ov/networking-map/compare/0.3.1...0.4.0) (2026-06-22)
+
+
+### Features
+
+* confirm destructive deletions ([12e1ab9](https://github.com/S3ga1ov/networking-map/commit/12e1ab956854d1cc12983ba5341dc0546721b314))
+* rework person notes as multiple linked notes ([c4ef183](https://github.com/S3ga1ov/networking-map/commit/c4ef183ee33564869a16035a74576049dd60f569))
+
 ## [0.3.1](https://github.com/S3ga1ov/networking-map/compare/0.3.0...0.3.1) (2026-06-22)
 
 
