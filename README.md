@@ -1,123 +1,150 @@
-# Networking Map — Obsidian plugin
+# Networking Map
 
 [![CI](https://github.com/S3ga1ov/networking-map/actions/workflows/ci.yml/badge.svg)](https://github.com/S3ga1ov/networking-map/actions/workflows/ci.yml)
 
-Build a **networking / connection map** inside Obsidian: you sit in the center,
-surrounded by three drag-resizable trust rings (*Круг поддержки → продуктивности
-→ развития*), two axes splitting the plane into four renameable sectors of life
-(*Работа / Семья / Друзья / Услуги*), people placed as colored points, and
-layered, directional connections between them.
+An Obsidian plugin for mapping your personal network — who is around you, how
+close they are, and how you are connected.
 
-It feels like an online whiteboard (drag, zoom, interactive panels), but the
-data lives in your vault: each map is a `.netmap` file, and per-person
-«примечания» can be promoted to real Markdown notes that Dataview/Bases can
-query.
+**English** · [Русский](#networking-map--на-русском)
 
-## How it works
+---
 
-The map is a method, not just a diagram (open the **`?`** button bottom-left for
-the in-app guide):
+## English
 
-- **You are the center.** Everything is drawn relative to you, so you don't
-  "get lost" in your own relationships.
-- **Three trust rings** show how close a connection is: **Круг поддержки**
-  (innermost — family and closest friends, no material interest), **Круг
-  продуктивности** (middle — your stable connections; the goal is to "pull"
-  people inward and keep the bond stable), and **Круг развития** (outer — the
-  horizon, new not-yet-established contacts). Drag a ring's edge to resize it.
-- **Sectors (axes)** divide the plane into areas of life and can be of different
-  sizes depending on how full of connections each area is.
-- **Connection style encodes the relationship**, and **arrows encode who takes
-  the initiative** — drawing links between your contacts (not just to you) is
-  how you read **network density**.
+### What it is
 
-## Features
+Networking Map turns your relationships into an interactive map inside Obsidian.
+You sit at the center; the people around you are placed on a circular canvas,
+grouped by closeness and by area of life, and joined with connections that
+describe the kind of relationship. It feels like a lightweight whiteboard, but
+every map is a plain file in your vault, and any person can link to real
+Markdown notes.
 
-- **Polar canvas** — center author point, 3 concentric trust rings, and any
-  number of angular sectors; pan, zoom, and drag-to-resize each ring.
-- **Movable, splittable sectors** — drag a sector boundary along the arc to make
-  areas bigger/smaller; split a sector ("+") to add a "Новый сектор", or remove
-  one ("×").
-- **Double-click to rename** any sector, ring, or the center name in place.
-- **Connections to the center** — click the central point to start/finish a link
-  so arrows can attach to you.
-- **People** — click empty space to drop a person (Фамилия / Имя / Отчество),
-  choose a color (голубой / розовый / серый) and an importance size (обычный /
-  важный / ключевой — larger = more important); the node shows ФИ initials.
-  Drag to reposition.
-- **Connections** — 5 semantic styles, each bound to a **layer**:
-  intense (bold black), regular (thin black), irregular (dashed black),
-  positive (thin green), and strained (thin red).
-- **Direction / initiative** — per connection: no arrows, initiative from the
-  first, from the second, or mutual (arrows both ways).
-- **Notes panel** (right) — re-click a person to edit name/color/size, write
-  inline notes, delete, or start a connection. **«Перенести в заметку»** creates
-  a Markdown note (optionally via a **Templater** template); **«Привязать
-  заметку»** links an existing note; a note matching the person's name is bound
-  automatically when there's exactly one. Inline preview, «Открыть заметку» /
-  «Отвязать».
-- **Initials order** — node initials as Ф+И (default) or И+Ф, in settings.
-- **Layers** — default «Общая схема связей» plus your own; toggle/filter
-  top-left. Layers carry only connections; people positions are shared across
-  all layers, so you can view the same network from different angles.
-- **Localization** — interface in Russian or English; follows Obsidian's UI
-  language by default, with a setting override. New maps get localized default
-  labels.
-- **Legend** bottom-left; **toolbar** top-right (zoom, undo/redo, export).
-- **Export** — PNG, standalone SVG, or JSON (the `.netmap` content itself).
-- **Undo/redo** (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`), `Esc` to cancel, `Delete`
-  to remove a selected connection.
+It is meant for thinking about a network in the moment — not getting lost in
+your own contacts, and seeing where the gaps and the dense spots are.
 
-Storage is the vault file (`TextFileView`) — Obsidian owns save; there is no
-separate database.
+### The idea
 
-## Architecture
+- **You are the center.** Everything is drawn relative to you.
+- **Rings = closeness.** Three concentric circles, from your inner circle of
+  support out to the “horizon” of new, not-yet-established contacts.
+- **Sectors = areas of life.** Axes split the canvas into named sectors (work,
+  family, friends, services…) that you can rename, resize, and split.
+- **People are points.** A connection's style encodes the kind of relationship,
+  and arrows show who takes the initiative. Linking contacts to each other — not
+  just to you — is how you read the density of your network.
+- **Layers** let you look at the same people through different lenses: links
+  belong to a layer, while a person's position is shared across all of them.
 
-Three layers, deliberately separated so the rendering/model "brain" stays
-portable (it could power a standalone web build later):
+### Main capabilities
 
-```
-src/
-  core/        framework-agnostic TS: model, geometry, commands, history, exporters
-  ui/          React + SVG: canvas, scene, panels, popups, store (zustand)
-  obsidian/    plugin glue: main.ts, NetMapView (TextFileView), peopleNotes, settings
-```
+- Place, move, color, size, and label people.
+- Typed connections with optional direction arrows, organized into layers.
+- Link any number of Obsidian notes to a person and open them in a click.
+- Zoom, undo/redo, and export to PNG, SVG, or JSON.
+- Interface in English or Russian.
 
-The `.netmap` file is pretty-printed JSON and doubles as the human-readable
-export format.
+A built-in guide (the **?** button, bottom-left) explains everything in context.
 
-## Build
+### Storage
+
+Each map is a single `.netmap` file — human-readable JSON — opened in a custom
+view. Per-person notes are ordinary Markdown files in your vault. There is no
+external database: Obsidian owns saving, so your data stays portable and yours.
+
+### Install
+
+1. Create `<vault>/.obsidian/plugins/networking-map/`.
+2. Copy `main.js`, `manifest.json`, and `styles.css` into it.
+3. In Obsidian → **Settings → Community plugins**, enable *Networking Map*.
+4. Use the ribbon icon (or the command) **“New connection map”** to create a
+   `.netmap` file and start.
+
+### Development
 
 ```bash
 npm install
-npm run build      # type-check + production bundle → main.js
-npm run dev        # watch mode (rebuilds main.js on change)
-npm test           # vitest: core geometry/commands/export unit tests
+npm run build   # type-check + production bundle → main.js
+npm run dev     # watch mode
+npm test        # unit tests (core model, geometry, export)
 ```
 
-Outputs needed by Obsidian: `main.js`, `manifest.json`, `styles.css`.
+Source layout: `src/core` (framework-agnostic model/geometry/commands/export),
+`src/ui` (React + SVG), `src/obsidian` (plugin glue).
 
-## Install into a vault
+### License
 
-1. In your vault, create the folder
-   `<vault>/.obsidian/plugins/networking-map/`.
-2. Copy `main.js`, `manifest.json`, and `styles.css` into it.
-3. In Obsidian: **Settings → Community plugins**, enable *Networking Map*
-   (turn off Restricted/Safe mode if needed).
-4. Click the ribbon icon **«Новая карта связей»** (or run the command of the
-   same name) to create a `.netmap` file and start.
+MIT.
 
-For development you can symlink the repo folder in place of step 1–2 so
-`npm run dev` updates the vault live.
+---
 
-## Settings
+## Networking Map — на русском
 
-- **Язык интерфейса / Interface language** — auto / Русский / English.
-- **Папка для заметок о людях** — where «Перенести в заметку» creates notes
-  (default `Networking/People`).
-- **Записывать свойства в frontmatter** — mirror a person's color and
-  coordinates into note properties for Dataview/Bases queries.
+[English](#english) · **Русский**
 
-## License
+### Что это
+
+Networking Map превращает ваши отношения в интерактивную карту прямо в Obsidian.
+В центре — вы; люди вокруг размещаются на круговом поле, сгруппированы по
+близости и по сферам жизни и соединены связями, которые описывают характер
+отношений. Ощущается как лёгкая онлайн-доска, но каждая карта — это обычный файл
+в вашем хранилище, а к любому человеку можно привязать настоящие заметки
+Markdown.
+
+Инструмент — чтобы думать о своей сети «в моменте»: не теряться в собственных
+контактах и видеть, где пробелы, а где плотные связи.
+
+### Идея
+
+- **Центр — вы.** Всё строится относительно вас.
+- **Круги — близость.** Три концентрические окружности: от внутреннего круга
+  поддержки до «горизонта» — новых, ещё не закрепившихся контактов.
+- **Секторы — сферы жизни.** Оси делят поле на именованные секторы (работа,
+  семья, друзья, услуги…), которые можно переименовывать, менять по размеру и
+  делить.
+- **Люди — точки.** Стиль связи кодирует характер отношений, а стрелки
+  показывают, кто проявляет инициативу. Соединяя контакты между собой, а не
+  только с вами, вы видите плотность сети.
+- **Слои** позволяют смотреть на одних и тех же людей под разными углами: связи
+  привязаны к слою, а положение человека общее для всех слоёв.
+
+### Основные возможности
+
+- Размещать, двигать, красить, масштабировать и подписывать людей.
+- Типизированные связи со стрелками направления, сгруппированные по слоям.
+- Привязывать к человеку любое число заметок Obsidian и открывать их по клику.
+- Зум, отмена/повтор, экспорт в PNG, SVG или JSON.
+- Интерфейс на русском или английском.
+
+Встроенная инструкция (кнопка **?** слева снизу) поясняет всё по контексту.
+
+### Хранение
+
+Каждая карта — один файл `.netmap` (читаемый JSON), открываемый в собственном
+представлении. Заметки о людях — обычные Markdown-файлы в хранилище. Никакой
+внешней базы: сохранением управляет Obsidian, данные остаются переносимыми и
+вашими.
+
+### Установка
+
+1. Создайте папку `<хранилище>/.obsidian/plugins/networking-map/`.
+2. Скопируйте туда `main.js`, `manifest.json` и `styles.css`.
+3. В Obsidian → **Настройки → Сторонние плагины** включите *Networking Map*.
+4. Кнопкой на ленте (или командой) **«Новая карта связей»** создайте файл
+   `.netmap` и начните.
+
+### Разработка
+
+```bash
+npm install
+npm run build   # проверка типов + продакшен-сборка → main.js
+npm run dev     # режим watch
+npm test        # юнит-тесты (ядро, геометрия, экспорт)
+```
+
+Структура: `src/core` (независимые от фреймворка модель/геометрия/команды/экспорт),
+`src/ui` (React + SVG), `src/obsidian` (склейка с плагином).
+
+### Лицензия
 
 MIT.
