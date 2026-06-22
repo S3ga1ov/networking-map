@@ -46,8 +46,7 @@ export function addPerson(
     size: input.size ?? "normal",
     x: input.x,
     y: input.y,
-    notes: "",
-    notePath: null,
+    notePaths: [],
     createdAt: now,
   };
   return { doc: { ...doc, people: [...doc.people, person] }, person };
@@ -95,24 +94,29 @@ export function setSize(
   return mapPerson(doc, id, (p) => ({ ...p, size }));
 }
 
-export function setNotes(
+/** Link a vault note to a person (no-op if empty or already linked). */
+export function addNoteLink(
   doc: NetMapDocument,
   id: string,
-  notes: string,
+  path: string,
 ): NetMapDocument {
-  return mapPerson(doc, id, (p) => ({ ...p, notes }));
+  if (!path) return doc;
+  return mapPerson(doc, id, (p) =>
+    p.notePaths.includes(path)
+      ? p
+      : { ...p, notePaths: [...p.notePaths, path] },
+  );
 }
 
-/** Record that a person's notes now live in a vault note (clears inline text). */
-export function setNotePath(
+/** Unlink a vault note from a person (does not delete the file). */
+export function removeNoteLink(
   doc: NetMapDocument,
   id: string,
-  notePath: string | null,
+  path: string,
 ): NetMapDocument {
   return mapPerson(doc, id, (p) => ({
     ...p,
-    notePath,
-    notes: notePath ? "" : p.notes,
+    notePaths: p.notePaths.filter((n) => n !== path),
   }));
 }
 

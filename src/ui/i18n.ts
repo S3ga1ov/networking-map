@@ -20,6 +20,14 @@ const en = {
   "btn.close": "Close",
   "btn.delete": "Delete",
 
+  // confirmations
+  "confirm.delete": "Delete",
+  "confirm.person": "Delete this person and all their connections?",
+  "confirm.note": "Unlink this note? The file itself is not deleted.",
+  "confirm.sector": "Remove this sector?",
+  "confirm.layer": "Delete this layer and all its connections?",
+  "confirm.connection": "Delete this connection?",
+
   // colors
   "color.blue": "Blue",
   "color.pink": "Pink",
@@ -36,13 +44,12 @@ const en = {
   "link.cancel": "Cancel connection",
   "link.pickTarget": "Click the second circle to create a connection.",
   "link.delete": "Delete connection",
-  "notes.label": "Notes",
-  "notes.placeholder": "You can write anything here that’s important to know about this person",
+  "notes.section": "Notes",
+  "notes.none": "No notes linked",
   "notes.openNote": "Open note",
   "notes.unlink": "Unlink",
-  "notes.toNote": "Move to a note",
+  "notes.create": "Create a note",
   "notes.bind": "Bind a note",
-  "notes.empty": "The note is empty.",
 
   // link styles (semantic)
   "linkstyle.bold-black": "Intense relationship",
@@ -117,6 +124,13 @@ const ru: Record<I18nKey, string> = {
   "btn.close": "Закрыть",
   "btn.delete": "Удалить",
 
+  "confirm.delete": "Удалить",
+  "confirm.person": "Удалить этого человека и все его связи?",
+  "confirm.note": "Отвязать эту заметку? Сам файл не удаляется.",
+  "confirm.sector": "Удалить этот сектор?",
+  "confirm.layer": "Удалить слой и все его связи?",
+  "confirm.connection": "Удалить эту связь?",
+
   "color.blue": "Голубой",
   "color.pink": "Розовый",
   "color.gray": "Серый",
@@ -130,13 +144,12 @@ const ru: Record<I18nKey, string> = {
   "link.cancel": "Отменить связь",
   "link.pickTarget": "Кликните по второму кружку, чтобы создать связь.",
   "link.delete": "Удалить связь",
-  "notes.label": "Примечания",
-  "notes.placeholder": "Здесь можно написать всё, что важно знать об этом человеке",
+  "notes.section": "Заметки",
+  "notes.none": "Заметки не привязаны",
   "notes.openNote": "Открыть заметку",
   "notes.unlink": "Отвязать",
-  "notes.toNote": "Перенести в заметку",
+  "notes.create": "Создать заметку",
   "notes.bind": "Привязать заметку",
-  "notes.empty": "Заметка пока пуста.",
 
   "linkstyle.bold-black": "Интенсивные отношения",
   "linkstyle.thin-black": "Обычные отношения",

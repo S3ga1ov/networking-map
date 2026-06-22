@@ -88,8 +88,9 @@ function HelpRu() {
       </p>
       <p>
         <b>Точки (люди):</b> один человек — одна точка. Чем важнее человек, тем
-        крупнее точка; здесь же — карточка с именем, цветом и примечаниями.
-        Примечания можно вынести в отдельную заметку Obsidian.
+        крупнее точка; в карточке — имя, цвет, размер и заметки. К человеку можно
+        привязать любое число заметок Obsidian (создать новую или привязать
+        существующую) и открывать их по клику.
       </p>
       <p>
         <b>Связи (линии)</b> отражают характер отношений:
@@ -167,8 +168,9 @@ function HelpEn() {
       </p>
       <p>
         <b>Points (people):</b> one person — one point. The more important the
-        person, the larger the point; the card holds the name, color and notes.
-        Notes can be moved into a separate Obsidian note.
+        person, the larger the point; the card holds the name, color, size and
+        notes. You can link any number of Obsidian notes to a person (create a
+        new one or bind an existing one) and open them with a click.
       </p>
       <p>
         <b>Connections (lines)</b> reflect the nature of the relationship:

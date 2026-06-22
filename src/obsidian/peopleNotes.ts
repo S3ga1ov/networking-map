@@ -15,8 +15,6 @@ import type { HostEnv, PersonNoteRef } from "../ui/env";
 export interface PeopleNotesOptions {
   /** Folder (vault-relative) where person notes are created. */
   folder: string;
-  /** When false, frontmatter passed by the UI is ignored on note creation. */
-  writeFrontmatter: boolean;
   /** Optional Templater template (vault path) applied to new notes. */
   templatePath: string;
 }
@@ -27,10 +25,9 @@ export function createObsidianEnv(
   options: PeopleNotesOptions,
 ): HostEnv {
   return {
-    async openPersonNote({ displayName, seedBody, frontmatter }) {
+    async openPersonNote({ displayName, seedBody }) {
       const ref = await ensurePersonNote(app, options.folder, displayName, {
         seedBody,
-        frontmatter: options.writeFrontmatter ? frontmatter : undefined,
         templatePath: options.templatePath,
       });
       await revealNote(app, ref.path);
@@ -39,16 +36,8 @@ export function createObsidianEnv(
     async revealNote(path) {
       await revealNote(app, path);
     },
-    async readNote(path) {
-      const file = app.vault.getAbstractFileByPath(normalizePath(path));
-      if (!(file instanceof TFile)) return null;
-      return app.vault.cachedRead(file);
-    },
     async pickNote() {
       return pickNote(app);
-    },
-    async findPersonNote(displayName) {
-      return findPersonNote(app, options.folder, displayName);
     },
     async saveExport(fileName, data) {
       const path = normalizePath(fileName);
@@ -90,11 +79,7 @@ async function ensurePersonNote(
   app: App,
   folder: string,
   displayName: string,
-  opts: {
-    seedBody: string;
-    frontmatter?: Record<string, string | number>;
-    templatePath?: string;
-  },
+  opts: { seedBody: string; templatePath?: string },
 ): Promise<PersonNoteRef> {
   const dir = normalizePath(folder);
   if (dir && !app.vault.getAbstractFileByPath(dir)) {
@@ -102,24 +87,27 @@ async function ensurePersonNote(
       /* folder may already exist (race) — ignore */
     });
   }
-  const base = sanitizeFileName(displayName);
-  const path = normalizePath(dir ? `${dir}/${base}.md` : `${base}.md`);
-
-  const existing = app.vault.getAbstractFileByPath(path);
-  if (existing instanceof TFile) return { path };
+  // Always create a fresh note; append a number when the name is taken.
+  const path = uniqueNotePath(app, dir, sanitizeFileName(displayName));
 
   // Body: a Templater template (if configured + available) or the seed text.
   const templated = await readTemplateRaw(app, opts.templatePath);
   const file = await app.vault.create(path, templated ?? opts.seedBody);
   if (templated) await runTemplater(app, file);
-
-  // Frontmatter merged on top of whatever the body/template produced.
-  if (opts.frontmatter && Object.keys(opts.frontmatter).length > 0) {
-    await app.fileManager.processFrontMatter(file, (fm) => {
-      Object.assign(fm, opts.frontmatter);
-    });
-  }
   return { path };
+}
+
+/** A non-colliding `<dir>/<base>.md` path (appends a number if taken). */
+function uniqueNotePath(app: App, dir: string, base: string): string {
+  const make = (name: string) =>
+    normalizePath(dir ? `${dir}/${name}.md` : `${name}.md`);
+  let name = base;
+  let i = 2;
+  while (app.vault.getAbstractFileByPath(make(name))) {
+    name = `${base} ${i}`;
+    i++;
+  }
+  return make(name);
 }
 
 /** Read a template file's raw content, or null when unavailable. */
@@ -156,22 +144,6 @@ async function runTemplater(app: App, file: TFile): Promise<void> {
   }
 }
 
-async function findPersonNote(
-  app: App,
-  folder: string,
-  displayName: string,
-): Promise<{ kind: "one" | "many" | "none"; path?: string }> {
-  const base = sanitizeFileName(displayName).toLowerCase();
-  const dir = normalizePath(folder);
-  const matches = app.vault
-    .getMarkdownFiles()
-    .filter((f) => (dir ? f.path.startsWith(`${dir}/`) : true))
-    .filter((f) => f.basename.toLowerCase() === base);
-  if (matches.length === 1) return { kind: "one", path: matches[0].path };
-  if (matches.length > 1) return { kind: "many" };
-  return { kind: "none" };
-}
-
 function pickNote(app: App): Promise<string | null> {
   return new Promise((resolve) => {
     const files = app.vault.getMarkdownFiles();
@@ -182,7 +154,7 @@ function pickNote(app: App): Promise<string | null> {
 class NotePickerModal extends FuzzySuggestModal<TFile> {
   private files: TFile[];
   private resolve: (path: string | null) => void;
-  private picked = false;
+  private done = false;
 
   constructor(app: App, files: TFile[], resolve: (path: string | null) => void) {
     super(app);
@@ -200,13 +172,22 @@ class NotePickerModal extends FuzzySuggestModal<TFile> {
   }
 
   onChooseItem(file: TFile): void {
-    this.picked = true;
-    this.resolve(file.path);
+    this.finish(file.path);
   }
 
   onClose(): void {
     super.onClose();
-    if (!this.picked) this.resolve(null);
+    // close() and onChooseItem() fire in the same synchronous stack and their
+    // order isn't guaranteed, so defer the "dismissed" resolution: a real
+    // selection sets `done` first and wins.
+    window.setTimeout(() => this.finish(null), 0);
+  }
+
+  /** Resolve the picker exactly once. */
+  private finish(path: string | null): void {
+    if (this.done) return;
+    this.done = true;
+    this.resolve(path);
   }
 }
 

@@ -7,8 +7,6 @@ export type LanguageSetting = "auto" | "ru" | "en";
 export interface NetworkingMapSettings {
   /** Folder where per-person notes are created. */
   peopleFolder: string;
-  /** Mirror person color/coordinates into note frontmatter on promotion. */
-  writeFrontmatter: boolean;
   /** UI language; "auto" follows Obsidian's interface language. */
   language: LanguageSetting;
   /** Order of node initials: "last-first" = Ф+И (default), else И+Ф. */
@@ -19,7 +17,6 @@ export interface NetworkingMapSettings {
 
 export const DEFAULT_SETTINGS: NetworkingMapSettings = {
   peopleFolder: "Networking/People",
-  writeFrontmatter: true,
   language: "auto",
   initialsOrder: "last-first",
   noteTemplate: "",
@@ -109,20 +106,5 @@ export class NetworkingMapSettingTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(containerEl)
-      .setName(ru ? "Записывать свойства в frontmatter" : "Write frontmatter properties")
-      .setDesc(
-        ru
-          ? "Дублировать цвет и координаты человека в свойства заметки для Dataview/Bases."
-          : "Mirror a person's color and coordinates into note properties for Dataview/Bases.",
-      )
-      .addToggle((t) =>
-        t
-          .setValue(this.plugin.settings.writeFrontmatter)
-          .onChange(async (v) => {
-            this.plugin.settings.writeFrontmatter = v;
-            await this.plugin.saveSettings();
-          }),
-      );
   }
 }

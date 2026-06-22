@@ -71,10 +71,8 @@ export interface Person {
   size: PersonSize;
   x: number;
   y: number;
-  /** Inline notes (md or json). Empty when promoted to a vault note. */
-  notes: string;
-  /** Vault path of a promoted `.md` note, or null when notes are inline. */
-  notePath: string | null;
+  /** Vault paths of linked Markdown notes (any number, deduplicated). */
+  notePaths: string[];
   createdAt: string;
 }
 
@@ -278,10 +276,24 @@ function normalizePerson(p: Partial<Person>): Person {
     size: (p.size as PersonSize) ?? "normal",
     x: p.x ?? 0,
     y: p.y ?? 0,
-    notes: p.notes ?? "",
-    notePath: p.notePath ?? null,
+    notePaths: migrateNotePaths(p),
     createdAt: p.createdAt ?? new Date().toISOString(),
   };
+}
+
+/**
+ * Build the linked-note list from any historical shape. The legacy single
+ * `notePath` is folded into the array; legacy inline `notes` text is dropped.
+ */
+function migrateNotePaths(p: Partial<Person> & { notePath?: string | null }): string[] {
+  const fromArray = Array.isArray(p.notePaths) ? p.notePaths : [];
+  const legacy = typeof p.notePath === "string" && p.notePath ? [p.notePath] : [];
+  const seen = new Set<string>();
+  return [...fromArray, ...legacy].filter((path) => {
+    if (typeof path !== "string" || path.length === 0 || seen.has(path)) return false;
+    seen.add(path);
+    return true;
+  });
 }
 
 /** Small, dependency-free id generator (unique enough for a single map). */

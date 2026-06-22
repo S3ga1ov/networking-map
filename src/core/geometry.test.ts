@@ -123,10 +123,9 @@ describe("personAt", () => {
     alias: "",
     color: "gray",
     size: "normal",
+    notePaths: [],
     x,
     y,
-    notes: "",
-    notePath: null,
     createdAt: "now",
   });
 

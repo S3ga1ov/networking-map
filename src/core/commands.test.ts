@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addLayer,
   addLink,
+  addNoteLink,
   addPerson,
   CIRCLE_GAP,
   deleteLayer,
@@ -9,13 +10,12 @@ import {
   MIN_CIRCLE_RADIUS,
   movePerson,
   removeLink,
+  removeNoteLink,
   removeSector,
   resizeCircle,
   setActiveLayer,
   setLinkDirection,
   setLayerVisible,
-  setNotePath,
-  setNotes,
   setSectorStart,
   splitSector,
 } from "./commands";
@@ -49,7 +49,7 @@ describe("addPerson", () => {
     });
     expect(doc.people).toHaveLength(0); // input untouched
     expect(next.people).toHaveLength(1);
-    expect(person.notePath).toBeNull();
+    expect(person.notePaths).toEqual([]);
     expect(person.color).toBe("gray");
   });
 });
@@ -137,14 +137,19 @@ describe("layers", () => {
   });
 });
 
-describe("notes promotion", () => {
-  it("setNotePath clears inline notes when a note path is set", () => {
+describe("note links", () => {
+  it("adds, deduplicates, and removes linked notes", () => {
     const { doc, aId } = withTwoPeople();
-    const noted = setNotes(doc, aId, "inline text");
-    const promoted = setNotePath(noted, aId, "People/A.md");
-    const person = promoted.people.find((p) => p.id === aId)!;
-    expect(person.notePath).toBe("People/A.md");
-    expect(person.notes).toBe("");
+    let next = addNoteLink(doc, aId, "People/A.md");
+    next = addNoteLink(next, aId, "People/A.md"); // duplicate ignored
+    next = addNoteLink(next, aId, "Contacts/A2.md");
+    next = addNoteLink(next, aId, ""); // empty ignored
+    let person = next.people.find((p) => p.id === aId)!;
+    expect(person.notePaths).toEqual(["People/A.md", "Contacts/A2.md"]);
+
+    next = removeNoteLink(next, aId, "People/A.md");
+    person = next.people.find((p) => p.id === aId)!;
+    expect(person.notePaths).toEqual(["Contacts/A2.md"]);
   });
 });
 
@@ -217,6 +222,34 @@ describe("migration", () => {
     expect(labels).toEqual(["Друзья", "Работа", "Семья", "Услуги"]);
     // New format round-trips unchanged.
     expect(deserialize(serialize(doc)).axes).toEqual(doc.axes);
+  });
+
+  it("folds legacy notePath into notePaths and drops inline notes", () => {
+    const old = {
+      version: 1,
+      meta: { title: "t", createdAt: "x", author: "Y" },
+      people: [
+        {
+          id: "p1",
+          last: "A",
+          first: "A",
+          color: "blue",
+          x: 0,
+          y: 0,
+          notes: "some inline text",
+          notePath: "People/A.md",
+          createdAt: "x",
+        },
+      ],
+      layers: [{ id: "default", name: "L", visible: true }],
+      activeLayerId: "default",
+      links: [],
+    };
+    const doc = deserialize(JSON.stringify(old));
+    const p = doc.people[0];
+    expect(p.notePaths).toEqual(["People/A.md"]);
+    expect("notes" in p).toBe(false);
+    expect("notePath" in p).toBe(false);
   });
 });
 

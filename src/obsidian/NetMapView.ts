@@ -73,7 +73,6 @@ export class NetMapView extends TextFileView {
   private mount(doc: ReturnType<typeof deserialize>): void {
     const env = createObsidianEnv(this.app, {
       folder: this.plugin.settings.peopleFolder,
-      writeFrontmatter: this.plugin.settings.writeFrontmatter,
       templatePath: this.plugin.settings.noteTemplate,
     });
 
