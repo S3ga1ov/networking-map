@@ -9,7 +9,10 @@ import {
   PERSON_SIZE_RADIUS,
 } from "../theme";
 import { removeLink, setLinkDirection } from "../../core/commands";
-import type { LinkDirection, LinkStyle } from "../../core/model";
+import { CENTER_ID, type LinkDirection, type LinkStyle } from "../../core/model";
+
+/** Effective radius of the central point for trimming link ends. */
+const CENTER_LINK_RADIUS = 10;
 
 /** One arrowhead marker per line color (Chromium lacks reliable context-stroke). */
 const ARROW_MARKERS: { id: string; fill: string }[] = [
@@ -50,6 +53,9 @@ export function LinksLayer() {
     );
     radById.set(p.id, PERSON_SIZE_RADIUS[p.size]);
   }
+  // The central author point participates in links at the origin.
+  posById.set(CENTER_ID, { x: 0, y: 0 });
+  radById.set(CENTER_ID, CENTER_LINK_RADIUS);
 
   return (
     <g className="nm-links">

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useMapStore, useMapStoreApi } from "../StoreContext";
 import { renameCircle, setAuthor } from "../../core/commands";
 import { screenToLogical, type Point } from "../../core/geometry";
+import { CENTER_ID } from "../../core/model";
 
 interface Props {
   center: Point;
@@ -20,8 +21,19 @@ export function TrustCircles({ center, svg }: Props) {
   const author = useMapStore((s) => s.doc.meta.author);
   const resize = useMapStore((s) => s.circleResize);
   const zoom = useMapStore((s) => s.viewport.zoom);
+  const linkMode = useMapStore((s) => s.mode === "link");
+  const isLinkSource = useMapStore((s) => s.pendingLinkSource === CENTER_ID);
   const [editing, setEditing] = useState<string | null>(null);
   const [editingAuthor, setEditingAuthor] = useState(false);
+
+  const onCenterClick = () => {
+    const state = api.getState();
+    if (state.mode === "link" && state.pendingLinkSource && state.pendingLinkSource !== CENTER_ID) {
+      state.completeLink(CENTER_ID);
+    } else {
+      state.startLink(CENTER_ID);
+    }
+  };
 
   // Keep label text a roughly constant on-screen size.
   const ringFont = 12 / zoom;
@@ -105,7 +117,36 @@ export function TrustCircles({ center, svg }: Props) {
         );
       })}
 
-      <circle cx={0} cy={0} r={6 * inv} className="nm-center-dot" />
+      {/* Larger transparent hit area so the center is easy to click for links. */}
+      <circle
+        cx={0}
+        cy={0}
+        r={14 * inv}
+        fill="transparent"
+        style={{ cursor: linkMode ? "crosshair" : "pointer" }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onCenterClick();
+        }}
+      />
+      {isLinkSource && (
+        <circle
+          cx={0}
+          cy={0}
+          r={11 * inv}
+          fill="none"
+          stroke="#2e7d32"
+          strokeWidth={2 * inv}
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+      <circle
+        cx={0}
+        cy={0}
+        r={6 * inv}
+        className="nm-center-dot"
+        style={{ pointerEvents: "none" }}
+      />
       {editingAuthor ? (
         <g transform={`translate(0, ${-authorFont}) scale(${inv})`}>
           <foreignObject x={-90} y={-13} width={180} height={26}>
