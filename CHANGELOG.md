@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/S3ga1ov/networking-map/compare/0.3.0...0.3.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* trigger release automation ([cff4336](https://github.com/S3ga1ov/networking-map/commit/cff433628cb2e95332ad1dd2b955c9ce0996ffff))
+
 ## [0.3.0](https://github.com/S3ga1ov/networking-map/compare/0.2.0...0.3.0) (2026-06-22)
 
 
