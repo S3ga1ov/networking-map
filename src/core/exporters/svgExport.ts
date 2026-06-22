@@ -3,7 +3,7 @@
  * output is self-contained: explicit colors, its own viewBox, no CSS variables.
  */
 
-import { initials, type Point } from "../geometry";
+import { displayInitials, type Point } from "../geometry";
 import { CENTER_ID, type NetMapDocument } from "../model";
 
 const RING_STROKE = "#b9c0cc";
@@ -148,7 +148,7 @@ export function renderSvgString(
       `<circle r="${r}" fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5"/>`,
     );
     parts.push(
-      `<text text-anchor="middle" dominant-baseline="central" font-size="${(r * 0.68).toFixed(1)}" font-weight="600" fill="${c.text}">${esc(initials(p.last, p.first, surnameFirst))}</text>`,
+      `<text text-anchor="middle" dominant-baseline="central" font-size="${(r * 0.68).toFixed(1)}" font-weight="600" fill="${c.text}">${esc(displayInitials(p, surnameFirst))}</text>`,
     );
     parts.push(`</g>`);
   }

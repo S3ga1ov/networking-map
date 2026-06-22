@@ -61,6 +61,11 @@ export interface Person {
   last: string;
   first: string;
   patronymic: string;
+  /**
+   * Optional label the node initials are derived from instead of the name
+   * (e.g. "мама" → М, "лысый чёрт" → ЛЧ). Empty = use ФИ initials.
+   */
+  alias: string;
   color: PersonColor;
   /** Importance — drives node radius. Defaults to "normal". */
   size: PersonSize;
@@ -268,6 +273,7 @@ function normalizePerson(p: Partial<Person>): Person {
     last: p.last ?? "",
     first: p.first ?? "",
     patronymic: p.patronymic ?? "",
+    alias: p.alias ?? "",
     color: (p.color as PersonColor) ?? "gray",
     size: (p.size as PersonSize) ?? "normal",
     x: p.x ?? 0,

@@ -85,6 +85,29 @@ export function initials(
   return (surnameFirst ? l + f : f + l).toUpperCase();
 }
 
+/**
+ * Letters derived from a free-form label: the first letter of a single word, or
+ * the first letters of the first two words (e.g. "мама" → М, "лысый чёрт" → ЛЧ).
+ */
+export function aliasInitials(alias: string): string {
+  const words = alias.trim().split(/\s+/).filter((w) => w.length > 0);
+  if (words.length === 0) return "";
+  if (words.length === 1) return firstGrapheme(words[0]).toUpperCase();
+  return (firstGrapheme(words[0]) + firstGrapheme(words[1])).toUpperCase();
+}
+
+/**
+ * The letters shown on a node: derived from the person's `alias` when set,
+ * otherwise from the ФИ initials.
+ */
+export function displayInitials(
+  p: { alias?: string; last: string; first: string },
+  surnameFirst = true,
+): string {
+  const alias = (p.alias ?? "").trim();
+  return alias ? aliasInitials(alias) : initials(p.last, p.first, surnameFirst);
+}
+
 function firstGrapheme(s: string): string {
   const trimmed = s.trim();
   return trimmed.length > 0 ? Array.from(trimmed)[0] : "";

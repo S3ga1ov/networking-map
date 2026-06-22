@@ -24,6 +24,7 @@ export interface NewPersonInput {
   last: string;
   first: string;
   patronymic?: string;
+  alias?: string;
   color: PersonColor;
   size?: PersonSize;
   x: number;
@@ -40,6 +41,7 @@ export function addPerson(
     last: input.last,
     first: input.first,
     patronymic: input.patronymic ?? "",
+    alias: input.alias ?? "",
     color: input.color,
     size: input.size ?? "normal",
     x: input.x,
@@ -66,6 +68,15 @@ export function renamePerson(
   parts: Pick<Person, "last" | "first" | "patronymic">,
 ): NetMapDocument {
   return mapPerson(doc, id, (p) => ({ ...p, ...parts }));
+}
+
+/** Set the optional node label the initials are derived from. */
+export function setAlias(
+  doc: NetMapDocument,
+  id: string,
+  alias: string,
+): NetMapDocument {
+  return mapPerson(doc, id, (p) => ({ ...p, alias }));
 }
 
 export function setColor(

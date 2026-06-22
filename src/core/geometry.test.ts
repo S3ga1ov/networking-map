@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   initials,
+  aliasInitials,
+  displayInitials,
   fullName,
   ringOf,
   ringCircleOf,
@@ -26,6 +28,27 @@ describe("initials", () => {
     expect(initials("", "Иван")).toBe("И");
     expect(initials("Иванов", "")).toBe("И");
     expect(initials("", "")).toBe("");
+  });
+});
+
+describe("aliasInitials / displayInitials", () => {
+  it("takes one letter from one word, two from two words", () => {
+    expect(aliasInitials("мама")).toBe("М");
+    expect(aliasInitials("лысый чёрт")).toBe("ЛЧ");
+    expect(aliasInitials("  раз два три  ")).toBe("РД");
+    expect(aliasInitials("")).toBe("");
+  });
+
+  it("prefers the alias over the name when present", () => {
+    expect(
+      displayInitials({ alias: "мама", last: "Иванова", first: "Бэла" }),
+    ).toBe("М");
+    expect(
+      displayInitials({ alias: "", last: "Иванова", first: "Бэла" }),
+    ).toBe("ИБ");
+    expect(
+      displayInitials({ last: "Volkov", first: "Vasiliy" }, false),
+    ).toBe("VV");
   });
 });
 
@@ -97,6 +120,7 @@ describe("personAt", () => {
     last: "L",
     first: "F",
     patronymic: "",
+    alias: "",
     color: "gray",
     size: "normal",
     x,

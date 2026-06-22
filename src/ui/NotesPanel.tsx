@@ -7,6 +7,7 @@ import { fullName } from "../core/geometry";
 import {
   deletePerson,
   renamePerson,
+  setAlias,
   setColor,
   setNotes,
   setNotePath,
@@ -137,6 +138,16 @@ export function NotesPanel() {
         t={t}
         onChange={(parts) =>
           api.getState().apply((doc) => renamePerson(doc, person.id, parts))
+        }
+      />
+
+      <input
+        className="nm-input"
+        placeholder={t("field.alias")}
+        title={t("field.aliasHint")}
+        value={person.alias}
+        onChange={(e) =>
+          api.getState().apply((doc) => setAlias(doc, person.id, e.target.value))
         }
       />
 

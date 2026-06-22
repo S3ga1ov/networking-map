@@ -19,6 +19,7 @@ export function CreatePersonPopup({ screen }: Props) {
   const [last, setLast] = useState("");
   const [first, setFirst] = useState("");
   const [patronymic, setPatronymic] = useState("");
+  const [alias, setAlias] = useState("");
   const [color, setColor] = useState<PersonColor>("blue");
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +37,7 @@ export function CreatePersonPopup({ screen }: Props) {
       last: last.trim(),
       first: first.trim(),
       patronymic: patronymic.trim(),
+      alias: alias.trim(),
       color,
       x: at.x,
       y: at.y,
@@ -78,6 +80,13 @@ export function CreatePersonPopup({ screen }: Props) {
         placeholder={t("field.patronymic")}
         value={patronymic}
         onChange={(e) => setPatronymic(e.target.value)}
+      />
+      <input
+        className="nm-input"
+        placeholder={t("field.alias")}
+        title={t("field.aliasHint")}
+        value={alias}
+        onChange={(e) => setAlias(e.target.value)}
       />
       <div className="nm-color-row">
         {PERSON_COLOR_ORDER.map((c) => (

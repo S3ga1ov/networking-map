@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useMapStore, useMapStoreApi } from "../StoreContext";
-import { initials, screenToLogical, type Point } from "../../core/geometry";
+import { displayInitials, screenToLogical, type Point } from "../../core/geometry";
 import { PERSON_COLORS, PERSON_SIZE_RADIUS } from "../theme";
 import { useSurnameFirst } from "../PrefsContext";
 import type { Person } from "../../core/model";
@@ -114,7 +114,7 @@ export function PersonNode({ person, center, svg }: Props) {
         fill={palette.text}
         style={{ pointerEvents: "none" }}
       >
-        {initials(person.last, person.first, surnameFirst)}
+        {displayInitials(person, surnameFirst)}
       </text>
     </g>
   );
