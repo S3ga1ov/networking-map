@@ -4,7 +4,7 @@
  */
 
 import { initials, type Point } from "../geometry";
-import { type NetMapDocument } from "../model";
+import { CENTER_ID, type NetMapDocument } from "../model";
 
 const RING_STROKE = "#b9c0cc";
 const AXIS_STROKE = "#cfd4dc";
@@ -51,8 +51,17 @@ function halfExtent(doc: NetMapDocument): number {
   return Math.max(maxRing, people) + 20;
 }
 
+export interface SvgExportOptions {
+  /** Surname initial first (Ф+И). Defaults to true. */
+  surnameFirst?: boolean;
+}
+
 /** Build a complete, standalone SVG document string for the map. */
-export function renderSvgString(doc: NetMapDocument): string {
+export function renderSvgString(
+  doc: NetMapDocument,
+  opts: SvgExportOptions = {},
+): string {
+  const surnameFirst = opts.surnameFirst ?? true;
   const half = halfExtent(doc);
   const size = half * 2;
   const vb = `${-half} ${-half} ${size} ${size}`;
@@ -88,6 +97,8 @@ export function renderSvgString(doc: NetMapDocument): string {
   const visible = new Set(doc.layers.filter((l) => l.visible).map((l) => l.id));
   const pos = new Map<string, Point>(doc.people.map((p) => [p.id, { x: p.x, y: p.y }]));
   const rad = new Map<string, number>(doc.people.map((p) => [p.id, radiusOf(p.size)]));
+  pos.set(CENTER_ID, { x: 0, y: 0 });
+  rad.set(CENTER_ID, 10);
   for (const link of doc.links) {
     if (!visible.has(link.layerId)) continue;
     const a = pos.get(link.source);
@@ -137,7 +148,7 @@ export function renderSvgString(doc: NetMapDocument): string {
       `<circle r="${r}" fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5"/>`,
     );
     parts.push(
-      `<text text-anchor="middle" dominant-baseline="central" font-size="${(r * 0.68).toFixed(1)}" font-weight="600" fill="${c.text}">${esc(initials(p.last, p.first))}</text>`,
+      `<text text-anchor="middle" dominant-baseline="central" font-size="${(r * 0.68).toFixed(1)}" font-weight="600" fill="${c.text}">${esc(initials(p.last, p.first, surnameFirst))}</text>`,
     );
     parts.push(`</g>`);
   }
@@ -147,31 +158,29 @@ export function renderSvgString(doc: NetMapDocument): string {
 }
 
 function renderAxes(doc: NetMapDocument, half: number): string {
-  const rot = (doc.axes.rotation * Math.PI) / 180;
   const reach = half - 10;
-  const a1 = { x: Math.cos(rot), y: Math.sin(rot) };
-  const a2 = { x: -Math.sin(rot), y: Math.cos(rot) };
-  const out: string[] = [];
-  out.push(
-    `<line x1="${-a1.x * reach}" y1="${-a1.y * reach}" x2="${a1.x * reach}" y2="${a1.y * reach}" stroke="${AXIS_STROKE}" stroke-width="1.5"/>`,
-  );
-  out.push(
-    `<line x1="${-a2.x * reach}" y1="${-a2.y * reach}" x2="${a2.x * reach}" y2="${a2.y * reach}" stroke="${AXIS_STROKE}" stroke-width="1.5"/>`,
-  );
-
   const labelR = Math.max(...doc.circles.map((c) => c.radius), 100) + 26;
-  const diag = [
-    { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
-    { x: Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
-  ];
-  doc.axes.sectors.forEach((label, i) => {
-    const d = diag[i];
-    const x = (d.x * Math.cos(rot) - d.y * Math.sin(rot)) * labelR;
-    const y = (d.x * Math.sin(rot) + d.y * Math.cos(rot)) * labelR;
+  const sectors = doc.axes.sectors;
+  const n = sectors.length;
+  const out: string[] = [];
+
+  // Boundary rays from the center.
+  for (const s of sectors) {
+    const a = (s.start * Math.PI) / 180;
     out.push(
-      `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="600" fill="${TEXT_MUTED}">${esc(label.toUpperCase())}</text>`,
+      `<line x1="0" y1="0" x2="${(Math.cos(a) * reach).toFixed(2)}" y2="${(Math.sin(a) * reach).toFixed(2)}" stroke="${AXIS_STROKE}" stroke-width="1.5"/>`,
+    );
+  }
+
+  // Labels at each sector's mid-angle.
+  sectors.forEach((s, i) => {
+    const next = n === 1 ? s.start + 360 : sectors[(i + 1) % n].start;
+    const span = ((next - s.start + 360) % 360) || 360;
+    const mid = ((s.start + span / 2) * Math.PI) / 180;
+    const x = Math.cos(mid) * labelR;
+    const y = Math.sin(mid) * labelR;
+    out.push(
+      `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="600" fill="${TEXT_MUTED}">${esc(s.label.toUpperCase())}</text>`,
     );
   });
   return out.join("");

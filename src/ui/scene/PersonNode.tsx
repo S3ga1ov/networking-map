@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { useMapStore, useMapStoreApi } from "../StoreContext";
 import { initials, screenToLogical, type Point } from "../../core/geometry";
 import { PERSON_COLORS, PERSON_SIZE_RADIUS } from "../theme";
+import { useSurnameFirst } from "../PrefsContext";
 import type { Person } from "../../core/model";
 
 interface Props {
@@ -29,6 +30,7 @@ export function PersonNode({ person, center, svg }: Props) {
   const y = drag ? drag.y : person.y;
   const palette = PERSON_COLORS[person.color];
   const radius = PERSON_SIZE_RADIUS[person.size];
+  const surnameFirst = useSurnameFirst();
 
   const toLogical = useCallback(
     (e: { clientX: number; clientY: number }): Point => {
@@ -112,7 +114,7 @@ export function PersonNode({ person, center, svg }: Props) {
         fill={palette.text}
         style={{ pointerEvents: "none" }}
       >
-        {initials(person.last, person.first)}
+        {initials(person.last, person.first, surnameFirst)}
       </text>
     </g>
   );

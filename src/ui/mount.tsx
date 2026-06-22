@@ -5,6 +5,7 @@ import { App } from "./App";
 import { StoreContext } from "./StoreContext";
 import { EnvContext } from "./EnvContext";
 import { LangContext } from "./LangContext";
+import { PrefsContext, type Prefs } from "./PrefsContext";
 import { makeT, type Lang } from "./i18n";
 import type { MapState } from "./store";
 import type { HostEnv } from "./env";
@@ -19,16 +20,19 @@ export function mountApp(
   store: StoreApi<MapState>,
   env: HostEnv,
   lang: Lang,
+  prefs: Prefs,
 ): Root {
   const root = createRoot(container);
   root.render(
     <StrictMode>
       <LangContext.Provider value={{ lang, t: makeT(lang) }}>
-        <EnvContext.Provider value={env}>
-          <StoreContext.Provider value={store}>
-            <App />
-          </StoreContext.Provider>
-        </EnvContext.Provider>
+        <PrefsContext.Provider value={prefs}>
+          <EnvContext.Provider value={env}>
+            <StoreContext.Provider value={store}>
+              <App />
+            </StoreContext.Provider>
+          </EnvContext.Provider>
+        </PrefsContext.Provider>
       </LangContext.Provider>
     </StrictMode>,
   );

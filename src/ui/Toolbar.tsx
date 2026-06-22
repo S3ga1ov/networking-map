@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMapStore, useMapStoreApi } from "./StoreContext";
 import { useEnv } from "./EnvContext";
 import { useT } from "./LangContext";
+import { useSurnameFirst } from "./PrefsContext";
 import {
   exportBaseName,
   exportJson,
@@ -14,6 +15,7 @@ export function Toolbar() {
   const api = useMapStoreApi();
   const env = useEnv();
   const t = useT();
+  const surnameFirst = useSurnameFirst();
   const zoom = useMapStore((s) => s.viewport.zoom);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -25,9 +27,9 @@ export function Toolbar() {
       if (kind === "json") {
         await env.saveExport(`${base}.export.json`, exportJson(doc));
       } else if (kind === "svg") {
-        await env.saveExport(`${base}.svg`, renderSvgString(doc));
+        await env.saveExport(`${base}.svg`, renderSvgString(doc, { surnameFirst }));
       } else {
-        const blob = await renderPngBlob(doc, 2);
+        const blob = await renderPngBlob(doc, 2, { surnameFirst });
         await env.saveExport(`${base}.png`, blob);
       }
     } catch (e) {

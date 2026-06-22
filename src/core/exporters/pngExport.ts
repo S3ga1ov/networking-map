@@ -3,14 +3,15 @@
  * Browser/Electron only (relies on Image + canvas), which is fine in Obsidian.
  */
 
-import { renderSvgString } from "./svgExport";
+import { renderSvgString, type SvgExportOptions } from "./svgExport";
 import type { NetMapDocument } from "../model";
 
 export async function renderPngBlob(
   doc: NetMapDocument,
   scale = 2,
+  opts: SvgExportOptions = {},
 ): Promise<Blob> {
-  const svg = renderSvgString(doc);
+  const svg = renderSvgString(doc, opts);
   const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(svgBlob);
   try {
