@@ -3,18 +3,29 @@ import {
   addLayer,
   addLink,
   addPerson,
+  CIRCLE_GAP,
   deleteLayer,
   deletePerson,
+  MIN_CIRCLE_RADIUS,
   movePerson,
   removeLink,
+  removeSector,
   resizeCircle,
   setActiveLayer,
   setLinkDirection,
   setLayerVisible,
   setNotePath,
   setNotes,
+  setSectorStart,
+  splitSector,
 } from "./commands";
-import { createEmptyDocument, DEFAULT_LAYER_ID } from "./model";
+import {
+  CENTER_ID,
+  createEmptyDocument,
+  deserialize,
+  DEFAULT_LAYER_ID,
+  serialize,
+} from "./model";
 import { History } from "./history";
 
 function withTwoPeople() {
@@ -141,7 +152,80 @@ describe("resizeCircle", () => {
   it("clamps to a minimum radius", () => {
     const doc = createEmptyDocument();
     const next = resizeCircle(doc, "trust", 5);
-    expect(next.circles.find((c) => c.id === "trust")?.radius).toBe(20);
+    expect(next.circles.find((c) => c.id === "trust")?.radius).toBe(
+      MIN_CIRCLE_RADIUS,
+    );
+  });
+
+  it("keeps an inner ring from growing past the next ring (with a gap)", () => {
+    const doc = createEmptyDocument(); // trust 160, productivity 300
+    const next = resizeCircle(doc, "trust", 999);
+    const trust = next.circles.find((c) => c.id === "trust")!.radius;
+    const prod = next.circles.find((c) => c.id === "productivity")!.radius;
+    expect(trust).toBeLessThanOrEqual(prod - CIRCLE_GAP);
+  });
+});
+
+describe("sectors", () => {
+  it("splits a sector into two with the new label", () => {
+    const doc = createEmptyDocument(); // 4 default sectors
+    const first = doc.axes.sectors[0];
+    const { doc: next, sectorId } = splitSector(doc, first.id, "Новый сектор");
+    expect(next.axes.sectors).toHaveLength(5);
+    const added = next.axes.sectors.find((s) => s.id === sectorId);
+    expect(added?.label).toBe("Новый сектор");
+    // Stays sorted by start angle.
+    const starts = next.axes.sectors.map((s) => s.start);
+    expect([...starts].sort((a, b) => a - b)).toEqual(starts);
+  });
+
+  it("clamps a boundary between its neighbors", () => {
+    const doc = createEmptyDocument(); // starts 0, 90, 180, 270
+    const second = doc.axes.sectors[1]; // start 90
+    const moved = setSectorStart(doc, second.id, 400); // way past neighbor 180
+    const s = moved.axes.sectors.find((x) => x.id === second.id)!;
+    expect(s.start).toBeLessThan(180);
+    expect(s.start).toBeGreaterThan(0);
+  });
+
+  it("removes a sector but refuses the last one", () => {
+    let doc = createEmptyDocument();
+    doc = removeSector(doc, doc.axes.sectors[0].id);
+    expect(doc.axes.sectors).toHaveLength(3);
+    while (doc.axes.sectors.length > 1) {
+      doc = removeSector(doc, doc.axes.sectors[0].id);
+    }
+    const same = removeSector(doc, doc.axes.sectors[0].id);
+    expect(same.axes.sectors).toHaveLength(1);
+  });
+});
+
+describe("migration", () => {
+  it("upgrades the old rotation+4-label axes to angular sectors", () => {
+    const old = {
+      version: 1,
+      meta: { title: "t", createdAt: "x", author: "Y" },
+      axes: { rotation: 0, sectors: ["Работа", "Семья", "Друзья", "Услуги"] },
+      people: [],
+      layers: [{ id: "default", name: "L", visible: true }],
+      activeLayerId: "default",
+      links: [],
+    };
+    const doc = deserialize(JSON.stringify(old));
+    expect(doc.axes.sectors).toHaveLength(4);
+    const labels = doc.axes.sectors.map((s) => s.label).sort();
+    expect(labels).toEqual(["Друзья", "Работа", "Семья", "Услуги"]);
+    // New format round-trips unchanged.
+    expect(deserialize(serialize(doc)).axes).toEqual(doc.axes);
+  });
+});
+
+describe("center links", () => {
+  it("connects a person to the center point", () => {
+    const { doc, aId } = withTwoPeople();
+    const next = addLink(doc, CENTER_ID, aId, "thin-black");
+    expect(next.links).toHaveLength(1);
+    expect(next.links[0].source).toBe(CENTER_ID);
   });
 });
 

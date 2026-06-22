@@ -41,42 +41,48 @@ export function ringCircleOf(p: Point, circles: Circle[]): Circle | null {
   return idx < sorted.length ? sorted[idx] : null;
 }
 
-/**
- * Which quadrant/sector a point falls into, as an index 0..3 matching
- * {@link Axes.sectors} (clockwise from the top-right quadrant). Honors the
- * axes' rotation by un-rotating the point first. Points exactly on an axis are
- * assigned to the clockwise-next sector deterministically.
- */
-export function sectorOf(p: Point, axes: Axes): 0 | 1 | 2 | 3 {
-  const rot = (axes.rotation * Math.PI) / 180;
-  // Un-rotate the point into axis-aligned space.
-  const cos = Math.cos(-rot);
-  const sin = Math.sin(-rot);
-  const x = p.x * cos - p.y * sin;
-  const y = p.x * sin + p.y * cos;
+/** Angle of a point in screen degrees [0,360): 0 = right, 90 = down. */
+export function pointAngle(p: Point): number {
+  const deg = (Math.atan2(p.y, p.x) * 180) / Math.PI;
+  return ((deg % 360) + 360) % 360;
+}
 
-  // Screen coords (y down). Clockwise from top-right:
-  // top-right (x>=0, y<0) → bottom-right (x>0, y>=0)
-  // → bottom-left (x<=0, y>0) → top-left (x<0, y<=0).
-  if (x >= 0 && y < 0) return 0; // top-right
-  if (x > 0 && y >= 0) return 1; // bottom-right
-  if (x <= 0 && y > 0) return 2; // bottom-left
-  return 3; // top-left
+/**
+ * Index (into `axes.sectors`) of the angular sector a point falls into. Sectors
+ * are assumed sorted by `start`; each spans from its `start` to the next
+ * sector's `start`, wrapping at 360°. Returns 0 when there are no sectors.
+ */
+export function sectorOf(p: Point, axes: Axes): number {
+  const sectors = axes.sectors;
+  if (sectors.length === 0) return 0;
+  const angle = pointAngle(p);
+  let idx = -1;
+  for (let i = 0; i < sectors.length; i++) {
+    if (sectors[i].start <= angle) idx = i;
+  }
+  // Below the first boundary → belongs to the last sector (wraps past 360°).
+  return idx === -1 ? sectors.length - 1 : idx;
 }
 
 /** Sector label for a point (convenience over {@link sectorOf}). */
 export function sectorLabelOf(p: Point, axes: Axes): string {
-  return axes.sectors[sectorOf(p, axes)];
+  const sectors = axes.sectors;
+  return sectors.length ? sectors[sectorOf(p, axes)].label : "";
 }
 
 /**
- * Initials shown on a node: first letter of last name + first letter of first
- * name, uppercased. Falls back gracefully when a part is missing.
+ * Initials shown on a node, uppercased. `surnameFirst` puts the last-name letter
+ * first (Ф+И); otherwise the first-name letter leads (И+Ф). Falls back
+ * gracefully when a part is missing.
  */
-export function initials(last: string, first: string): string {
+export function initials(
+  last: string,
+  first: string,
+  surnameFirst = true,
+): string {
   const l = firstGrapheme(last);
   const f = firstGrapheme(first);
-  return (l + f).toUpperCase();
+  return (surnameFirst ? l + f : f + l).toUpperCase();
 }
 
 function firstGrapheme(s: string): string {

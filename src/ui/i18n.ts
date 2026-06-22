@@ -39,6 +39,7 @@ const en = {
   "notes.openNote": "Open note",
   "notes.unlink": "Unlink",
   "notes.toNote": "Move to a note",
+  "notes.bind": "Bind a note",
   "notes.empty": "The note is empty.",
 
   // link styles (semantic)
@@ -93,6 +94,9 @@ const en = {
   "sector.family": "Family",
   "sector.friends": "Friends",
   "sector.services": "Services",
+  "sector.new": "New sector",
+  "sector.split": "Split sector",
+  "sector.remove": "Remove sector",
   "layer.default": "General connection map",
 };
 
@@ -127,6 +131,7 @@ const ru: Record<I18nKey, string> = {
   "notes.openNote": "Открыть заметку",
   "notes.unlink": "Отвязать",
   "notes.toNote": "Перенести в заметку",
+  "notes.bind": "Привязать заметку",
   "notes.empty": "Заметка пока пуста.",
 
   "linkstyle.bold-black": "Интенсивные отношения",
@@ -173,6 +178,9 @@ const ru: Record<I18nKey, string> = {
   "sector.family": "Семья",
   "sector.friends": "Друзья",
   "sector.services": "Услуги",
+  "sector.new": "Новый сектор",
+  "sector.split": "Разделить сектор",
+  "sector.remove": "Удалить сектор",
   "layer.default": "Общая схема связей",
 };
 

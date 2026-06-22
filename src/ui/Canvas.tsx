@@ -126,7 +126,7 @@ export function Canvas() {
         onWheel={onWheel}
       >
         <g transform={transform}>
-          <AxesOverlay />
+          <AxesOverlay center={center} svg={svgRef} />
           <TrustCircles center={center} svg={svgRef} />
           <LinksLayer />
           <PeopleLayer center={center} svg={svgRef} />

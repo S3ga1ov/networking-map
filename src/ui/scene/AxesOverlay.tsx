@@ -1,74 +1,105 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMapStore, useMapStoreApi } from "../StoreContext";
-import { renameSector } from "../../core/commands";
+import { useT } from "../LangContext";
+import {
+  removeSector,
+  renameSector,
+  splitSector,
+} from "../../core/commands";
+import { pointAngle, screenToLogical, type Point } from "../../core/geometry";
+
+interface Props {
+  center: Point;
+  svg: React.RefObject<SVGSVGElement>;
+}
 
 /**
- * The quadrant axes (a rotatable cross) and the four sector labels. Labels stay
- * upright, sit on the diagonals between the axes, and are double-click editable.
+ * The angular sector boundaries (rays from the center) and their labels. Each
+ * boundary has a drag handle to move it along the arc; each sector label can be
+ * renamed (double-click), split, or removed. Labels/handles compensate for zoom.
  */
-export function AxesOverlay() {
+export function AxesOverlay({ center, svg }: Props) {
   const api = useMapStoreApi();
+  const t = useT();
   const circles = useMapStore((s) => s.doc.circles);
-  const axes = useMapStore((s) => s.doc.axes);
+  const sectors = useMapStore((s) => s.doc.axes.sectors);
   const zoom = useMapStore((s) => s.viewport.zoom);
-  const [editing, setEditing] = useState<0 | 1 | 2 | 3 | null>(null);
+  const sectorDrag = useMapStore((s) => s.sectorDrag);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
   const outer = Math.max(...circles.map((c) => c.radius), 100);
   const reach = outer + 48;
+  const handleR = Math.max(outer * 0.6, 70);
   const sectorFont = 15 / zoom;
   const labelR = outer + sectorFont * 1.4;
   const inv = 1 / zoom;
-  const rot = (axes.rotation * Math.PI) / 180;
+  const n = sectors.length;
 
-  // Axis direction unit vectors (screen coords, y down).
-  const a1 = { x: Math.cos(rot), y: Math.sin(rot) };
-  const a2 = { x: -Math.sin(rot), y: Math.cos(rot) };
+  const startOf = (id: string, base: number) =>
+    sectorDrag && sectorDrag.id === id ? sectorDrag.start : base;
 
-  // Diagonal unit directions for sector label centers, clockwise from top-right.
-  const diagBase = [
-    { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
-    { x: Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
-    { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
-  ];
-  const rotate = (p: { x: number; y: number }) => ({
-    x: p.x * Math.cos(rot) - p.y * Math.sin(rot),
-    y: p.x * Math.sin(rot) + p.y * Math.cos(rot),
-  });
+  const toAngle = useCallback(
+    (e: { clientX: number; clientY: number }): number => {
+      const rect = svg.current?.getBoundingClientRect();
+      const p = screenToLogical(
+        { x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) },
+        api.getState().viewport,
+        center,
+      );
+      return pointAngle(p);
+    },
+    [api, center, svg],
+  );
+
+  const rad = (deg: number) => (deg * Math.PI) / 180;
 
   return (
     <g className="nm-axes">
-      <line
-        x1={-a1.x * reach}
-        y1={-a1.y * reach}
-        x2={a1.x * reach}
-        y2={a1.y * reach}
-        className="nm-axis-line"
-      />
-      <line
-        x1={-a2.x * reach}
-        y1={-a2.y * reach}
-        x2={a2.x * reach}
-        y2={a2.y * reach}
-        className="nm-axis-line"
-      />
+      {sectors.map((sec) => {
+        const a = rad(startOf(sec.id, sec.start));
+        return (
+          <g key={`ray-${sec.id}`}>
+            <line
+              x1={0}
+              y1={0}
+              x2={Math.cos(a) * reach}
+              y2={Math.sin(a) * reach}
+              className="nm-axis-line"
+            />
+            {n > 1 && (
+              <BoundaryHandle
+                x={Math.cos(a) * handleR}
+                y={Math.sin(a) * handleR}
+                r={6 * inv}
+                onDrag={(e) => api.getState().dragSectorTo(sec.id, toAngle(e))}
+                onEnd={() => api.getState().commitSectorDrag()}
+              />
+            )}
+          </g>
+        );
+      })}
 
-      {axes.sectors.map((label, i) => {
-        const idx = i as 0 | 1 | 2 | 3;
-        const dir = rotate(diagBase[i]);
-        const cx = dir.x * labelR;
-        const cy = dir.y * labelR;
-        if (editing === idx) {
+      {sectors.map((sec, i) => {
+        const start = startOf(sec.id, sec.start);
+        const next =
+          n === 1 ? start + 360 : startOf(sectors[(i + 1) % n].id, sectors[(i + 1) % n].start);
+        const span = ((next - start + 360) % 360) || 360;
+        const mid = rad(start + span / 2);
+        const cx = Math.cos(mid) * labelR;
+        const cy = Math.sin(mid) * labelR;
+
+        if (editing === sec.id) {
           return (
-            <g key={i} transform={`translate(${cx}, ${cy}) scale(${inv})`}>
-              <foreignObject x={-80} y={-13} width={160} height={26}>
+            <g key={`lbl-${sec.id}`} transform={`translate(${cx}, ${cy}) scale(${inv})`}>
+              <foreignObject x={-90} y={-13} width={180} height={26}>
                 <input
                   className="nm-input nm-inline-edit"
                   autoFocus
-                  defaultValue={label}
+                  defaultValue={sec.label}
                   onBlur={(e) => {
-                    const v = e.target.value.trim() || label;
-                    api.getState().apply((doc) => renameSector(doc, idx, v));
+                    const v = e.target.value.trim() || sec.label;
+                    api.getState().apply((doc) => renameSector(doc, sec.id, v));
                     setEditing(null);
                   }}
                   onKeyDown={(e) => {
@@ -80,21 +111,91 @@ export function AxesOverlay() {
             </g>
           );
         }
+
+        const hot = hovered === sec.id;
         return (
-          <text
-            key={i}
-            x={cx}
-            y={cy}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="nm-sector-label"
-            onDoubleClick={() => setEditing(idx)}
-            style={{ cursor: "text", fontSize: sectorFont }}
+          <g
+            key={`lbl-${sec.id}`}
+            transform={`translate(${cx}, ${cy}) scale(${inv})`}
+            onMouseEnter={() => setHovered(sec.id)}
+            onMouseLeave={() => setHovered((h) => (h === sec.id ? null : h))}
           >
-            {label}
-          </text>
+            {/* Transparent hover surface covering label + tools. */}
+            <rect x={-70} y={-16} width={140} height={48} fill="transparent" />
+            <text
+              x={0}
+              y={0}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="nm-sector-label"
+              style={{ cursor: "text", fontSize: 15 }}
+              onDoubleClick={() => setEditing(sec.id)}
+            >
+              {sec.label}
+            </text>
+            {hot && (
+              <foreignObject x={-30} y={13} width={60} height={26}>
+                <div className="nm-sector-tools" onPointerDown={(e) => e.stopPropagation()}>
+                  <button
+                    className="nm-sector-tool nm-st-split"
+                    title={t("sector.split")}
+                    onClick={() =>
+                      api.getState().apply((doc) => splitSector(doc, sec.id, t("sector.new")).doc)
+                    }
+                  >
+                    +
+                  </button>
+                  {n > 1 && (
+                    <button
+                      className="nm-sector-tool nm-st-remove"
+                      title={t("sector.remove")}
+                      onClick={() =>
+                        api.getState().apply((doc) => removeSector(doc, sec.id))
+                      }
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </foreignObject>
+            )}
+          </g>
         );
       })}
     </g>
+  );
+}
+
+function BoundaryHandle(props: {
+  x: number;
+  y: number;
+  r: number;
+  onDrag: (e: { clientX: number; clientY: number }) => void;
+  onEnd: () => void;
+}) {
+  const dragging = useRef(false);
+  return (
+    <circle
+      cx={props.x}
+      cy={props.y}
+      r={props.r}
+      className="nm-sector-handle"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        dragging.current = true;
+      }}
+      onPointerMove={(e) => {
+        if (!dragging.current) return;
+        e.stopPropagation();
+        props.onDrag(e);
+      }}
+      onPointerUp={(e) => {
+        if (!dragging.current) return;
+        e.stopPropagation();
+        dragging.current = false;
+        props.onEnd();
+      }}
+    />
   );
 }

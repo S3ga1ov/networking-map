@@ -36,13 +36,24 @@ export interface Circle {
   radius: number;
 }
 
-/** Axes overlay: a rotation (degrees) and the four sector labels, clockwise. */
-export interface Axes {
-  /** Rotation of the axis cross in degrees (0 = vertical/horizontal). */
-  rotation: number;
-  /** Exactly four sector labels, clockwise from the top-right quadrant. */
-  sectors: [string, string, string, string];
+/**
+ * A pie slice of the coordinate plane. `start` is the boundary angle (degrees,
+ * screen convention: 0 = right, 90 = down, clockwise). A sector spans from its
+ * own `start` to the next sector's `start`, wrapping around 360°.
+ */
+export interface Sector {
+  id: string;
+  label: string;
+  start: number;
 }
+
+/** Axes overlay: an ordered ring of angular sectors (≥1), sorted by `start`. */
+export interface Axes {
+  sectors: Sector[];
+}
+
+/** Reserved id for the central author point when used as a connection endpoint. */
+export const CENTER_ID = "__center__";
 
 /** A person placed on the map. Position is in logical units, center = (0,0). */
 export interface Person {
@@ -108,13 +119,29 @@ export interface NetMapDocument {
 
 export const DEFAULT_LAYER_ID = "default";
 
-/** Default sector labels, clockwise: Работа, Семья, Друзья, Услуги. */
+/** Default sector labels, by quadrant (top-right, bottom-right, BL, TL). */
 export const DEFAULT_SECTORS: [string, string, string, string] = [
   "Работа",
   "Семья",
   "Друзья",
   "Услуги",
 ];
+
+/**
+ * Default sectors as angular slices matching the classic four quadrants
+ * (screen angles: 0 = right, 90 = down). Sorted by `start`.
+ */
+export function defaultSectors(
+  labels: [string, string, string, string] = DEFAULT_SECTORS,
+): Sector[] {
+  const [work, family, friends, services] = labels;
+  return [
+    { id: "s_family", label: family, start: 0 }, // bottom-right
+    { id: "s_friends", label: friends, start: 90 }, // bottom-left
+    { id: "s_services", label: services, start: 180 }, // top-left
+    { id: "s_work", label: work, start: 270 }, // top-right
+  ];
+}
 
 /** Default trust rings, inner → outer. */
 export function defaultCircles(): Circle[] {
@@ -136,7 +163,7 @@ export function createEmptyDocument(
     meta: { title, createdAt: now, author },
     viewport: { zoom: 1, panX: 0, panY: 0 },
     circles: defaultCircles(),
-    axes: { rotation: 0, sectors: [...DEFAULT_SECTORS] },
+    axes: { sectors: defaultSectors() },
     people: [],
     layers: [
       { id: DEFAULT_LAYER_ID, name: "Общая схема связей", visible: true },
@@ -169,7 +196,6 @@ export function deserialize(raw: string): NetMapDocument {
  */
 export function migrate(input: Partial<NetMapDocument>): NetMapDocument {
   const base = createEmptyDocument();
-  const sectors = input.axes?.sectors;
   const doc: NetMapDocument = {
     version: CURRENT_VERSION,
     meta: { ...base.meta, ...input.meta },
@@ -178,13 +204,7 @@ export function migrate(input: Partial<NetMapDocument>): NetMapDocument {
       Array.isArray(input.circles) && input.circles.length > 0
         ? input.circles.map((c) => ({ ...c }))
         : base.circles,
-    axes: {
-      rotation: input.axes?.rotation ?? 0,
-      sectors:
-        Array.isArray(sectors) && sectors.length === 4
-          ? ([...sectors] as [string, string, string, string])
-          : [...base.axes.sectors],
-    },
+    axes: { sectors: migrateSectors(input.axes) },
     people: Array.isArray(input.people)
       ? input.people.map(normalizePerson)
       : [],
@@ -206,6 +226,40 @@ export function migrate(input: Partial<NetMapDocument>): NetMapDocument {
     doc.activeLayerId = doc.layers[0].id;
   }
   return doc;
+}
+
+/** Normalize an angle into [0, 360). */
+export function normAngle(a: number): number {
+  return ((a % 360) + 360) % 360;
+}
+
+/** Migrate the axes field from any historical shape to a sorted Sector[]. */
+function migrateSectors(axes: Partial<NetMapDocument>["axes"] | undefined): Sector[] {
+  const raw = axes?.sectors as unknown;
+  if (!Array.isArray(raw) || raw.length === 0) return defaultSectors();
+
+  // New shape: array of objects with a numeric `start`.
+  if (typeof raw[0] === "object" && raw[0] !== null && "start" in raw[0]) {
+    const sectors = (raw as Partial<Sector>[]).map((s, i) => ({
+      id: s.id ?? generateId("s"),
+      label: s.label ?? `${i + 1}`,
+      start: normAngle(s.start ?? 0),
+    }));
+    return sectors.sort((a, b) => a.start - b.start);
+  }
+
+  // Old shape: 4 label strings + a `rotation`, one per quadrant.
+  const labels = raw as string[];
+  const r = (axes as { rotation?: number })?.rotation ?? 0;
+  const four: [string, string, string, string] = [
+    labels[0] ?? DEFAULT_SECTORS[0],
+    labels[1] ?? DEFAULT_SECTORS[1],
+    labels[2] ?? DEFAULT_SECTORS[2],
+    labels[3] ?? DEFAULT_SECTORS[3],
+  ];
+  return defaultSectors(four)
+    .map((s) => ({ ...s, start: normAngle(s.start + r) }))
+    .sort((a, b) => a.start - b.start);
 }
 
 function normalizePerson(p: Partial<Person>): Person {

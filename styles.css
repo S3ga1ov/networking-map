@@ -450,6 +450,65 @@
   fill: var(--interactive-accent);
 }
 
+.nm-sector-handle {
+  fill: var(--background-primary);
+  stroke: var(--interactive-accent);
+  stroke-width: 2;
+  cursor: grab;
+}
+
+.nm-sector-handle:hover {
+  fill: var(--interactive-accent);
+}
+
+.nm-sector-tools {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  animation: nm-fade-in 0.12s ease-out;
+}
+
+@keyframes nm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nm-sector-tool {
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid currentColor;
+  background: var(--background-primary);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.nm-st-split {
+  color: #2e9e4f;
+}
+
+.nm-st-split:hover {
+  background: #2e9e4f;
+  color: #fff;
+}
+
+.nm-st-remove {
+  color: #d23b3b;
+}
+
+.nm-st-remove:hover {
+  background: #d23b3b;
+  color: #fff;
+}
+
 .nm-inline-edit {
   text-align: center;
   font-size: 13px;

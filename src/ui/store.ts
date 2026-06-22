@@ -16,8 +16,11 @@ import {
 import {
   addLink,
   addPerson as addPersonCmd,
+  clampCircleRadius,
+  clampSectorStart,
   movePerson,
   resizeCircle,
+  setSectorStart,
   setViewport as setViewportCmd,
   type NewPersonInput,
 } from "../core/commands";
@@ -54,6 +57,8 @@ export interface MapState {
   drag: { id: string; x: number; y: number } | null;
   /** Live radius of the ring being resized (not yet committed). */
   circleResize: { id: string; radius: number } | null;
+  /** Live boundary angle of the sector being dragged (not yet committed). */
+  sectorDrag: { id: string; start: number } | null;
 
   // ---- actions ----
   /** Apply a pure command, recording the previous doc for undo + persisting. */
@@ -93,6 +98,11 @@ export interface MapState {
   resizeCircleTo: (id: string, radius: number) => void;
   /** Commit the in-progress ring resize (one history entry). */
   commitCircleResize: () => void;
+
+  /** Set the live boundary angle of a sector being dragged (ephemeral). */
+  dragSectorTo: (id: string, start: number) => void;
+  /** Commit the in-progress sector drag (one history entry). */
+  commitSectorDrag: () => void;
 }
 
 /** Callback the Obsidian view installs to write serialized state to the file. */
@@ -114,6 +124,7 @@ export function createMapStore(
     viewport: { ...initialDoc.viewport },
     drag: null,
     circleResize: null,
+    sectorDrag: null,
 
     apply: (fn) => {
       const prev = get().doc;
@@ -210,7 +221,13 @@ export function createMapStore(
       get().apply((doc) => movePerson(doc, drag.id, drag.x, drag.y));
     },
 
-    resizeCircleTo: (id, radius) => set({ circleResize: { id, radius } }),
+    resizeCircleTo: (id, radius) =>
+      set({
+        circleResize: {
+          id,
+          radius: clampCircleRadius(get().doc.circles, id, radius),
+        },
+      }),
     commitCircleResize: () => {
       const { circleResize } = get();
       set({ circleResize: null });
@@ -218,6 +235,20 @@ export function createMapStore(
       get().apply((doc) =>
         resizeCircle(doc, circleResize.id, circleResize.radius),
       );
+    },
+
+    dragSectorTo: (id, start) =>
+      set({
+        sectorDrag: {
+          id,
+          start: clampSectorStart(get().doc.axes.sectors, id, start),
+        },
+      }),
+    commitSectorDrag: () => {
+      const { sectorDrag } = get();
+      set({ sectorDrag: null });
+      if (!sectorDrag) return;
+      get().apply((doc) => setSectorStart(doc, sectorDrag.id, sectorDrag.start));
     },
   }));
 }

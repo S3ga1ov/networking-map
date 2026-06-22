@@ -6,7 +6,7 @@
 
 import {
   generateId,
-  type Axes,
+  normAngle,
   type Circle,
   type Layer,
   type Link,
@@ -16,6 +16,7 @@ import {
   type Person,
   type PersonColor,
   type PersonSize,
+  type Sector,
   type Viewport,
 } from "./model";
 
@@ -222,12 +223,34 @@ export function deleteLayer(doc: NetMapDocument, id: string): NetMapDocument {
   };
 }
 
+export const MIN_CIRCLE_RADIUS = 30;
+export const CIRCLE_GAP = 24; // logical units kept between adjacent rings
+
+/**
+ * Clamp a ring's radius so rings keep their nesting order with a gap: an inner
+ * ring can't grow past the next outer ring, and vice versa. Ring order is the
+ * order of `circles` (inner → outer).
+ */
+export function clampCircleRadius(
+  circles: Circle[],
+  id: string,
+  radius: number,
+): number {
+  const i = circles.findIndex((c) => c.id === id);
+  if (i < 0) return Math.max(MIN_CIRCLE_RADIUS, radius);
+  const lower = i > 0 ? circles[i - 1].radius + CIRCLE_GAP : MIN_CIRCLE_RADIUS;
+  const lo = Math.max(MIN_CIRCLE_RADIUS, lower);
+  const upper =
+    i < circles.length - 1 ? circles[i + 1].radius - CIRCLE_GAP : Infinity;
+  return Math.min(Math.max(radius, lo), Math.max(lo, upper));
+}
+
 export function resizeCircle(
   doc: NetMapDocument,
   id: string,
   radius: number,
 ): NetMapDocument {
-  const clamped = Math.max(20, radius);
+  const clamped = clampCircleRadius(doc.circles, id, radius);
   return mapCircle(doc, id, (c) => ({ ...c, radius: clamped }));
 }
 
@@ -241,19 +264,72 @@ export function renameCircle(
 
 export function renameSector(
   doc: NetMapDocument,
-  index: 0 | 1 | 2 | 3,
+  id: string,
   label: string,
 ): NetMapDocument {
-  const sectors = [...doc.axes.sectors] as Axes["sectors"];
-  sectors[index] = label;
-  return { ...doc, axes: { ...doc.axes, sectors } };
+  return mapSectors(doc, (s) =>
+    s.map((sec) => (sec.id === id ? { ...sec, label } : sec)),
+  );
 }
 
-export function rotateAxes(
+export const MIN_SECTOR_GAP = 6; // degrees between adjacent boundaries
+
+/** The clamped boundary angle for a sector, keeping a gap from its neighbors. */
+export function clampSectorStart(
+  sectors: Sector[],
+  id: string,
+  angle: number,
+): number {
+  const n = sectors.length;
+  if (n <= 1) return normAngle(angle);
+  const i = sectors.findIndex((s) => s.id === id);
+  if (i < 0) return normAngle(angle);
+  const prev = sectors[(i - 1 + n) % n].start;
+  const next = sectors[(i + 1) % n].start;
+  // Width of the arc the boundary may move within (prev → next, clockwise).
+  const width = n === 2 ? 360 : normAngle(next - prev);
+  const desired = normAngle(angle - prev);
+  const clamped = Math.min(Math.max(desired, MIN_SECTOR_GAP), width - MIN_SECTOR_GAP);
+  return normAngle(prev + clamped);
+}
+
+/** Move a sector's boundary to a new angle, clamped between its neighbors. */
+export function setSectorStart(
   doc: NetMapDocument,
-  rotation: number,
+  id: string,
+  angle: number,
 ): NetMapDocument {
-  return { ...doc, axes: { ...doc.axes, rotation } };
+  const start = clampSectorStart(doc.axes.sectors, id, angle);
+  return mapSectors(doc, (s) =>
+    sortSectors(s.map((sec) => (sec.id === id ? { ...sec, start } : sec))),
+  );
+}
+
+/** Split a sector in two, inserting a new boundary at its mid-angle. */
+export function splitSector(
+  doc: NetMapDocument,
+  id: string,
+  newLabel: string,
+): { doc: NetMapDocument; sectorId: string } {
+  const sectors = doc.axes.sectors;
+  const n = sectors.length;
+  const i = sectors.findIndex((s) => s.id === id);
+  if (i < 0) return { doc, sectorId: "" };
+  const start = sectors[i].start;
+  const next = n === 1 ? start + 360 : sectors[(i + 1) % n].start;
+  const mid = normAngle(start + normAngle(next - start) / 2);
+  const sectorId = generateId("s");
+  const inserted = { id: sectorId, label: newLabel, start: mid };
+  return {
+    doc: mapSectors(doc, (s) => sortSectors([...s, inserted])),
+    sectorId,
+  };
+}
+
+/** Remove a sector (its boundary); refuses to drop below one sector. */
+export function removeSector(doc: NetMapDocument, id: string): NetMapDocument {
+  if (doc.axes.sectors.length <= 1) return doc;
+  return mapSectors(doc, (s) => s.filter((sec) => sec.id !== id));
 }
 
 export function setAuthor(doc: NetMapDocument, author: string): NetMapDocument {
@@ -289,4 +365,15 @@ function mapCircle(
     ...doc,
     circles: doc.circles.map((c) => (c.id === id ? fn(c) : c)),
   };
+}
+
+function sortSectors(s: Sector[]): Sector[] {
+  return [...s].sort((a, b) => a.start - b.start);
+}
+
+function mapSectors(
+  doc: NetMapDocument,
+  fn: (s: Sector[]) => Sector[],
+): NetMapDocument {
+  return { ...doc, axes: { ...doc.axes, sectors: fn(doc.axes.sectors) } };
 }

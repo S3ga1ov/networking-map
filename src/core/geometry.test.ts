@@ -5,18 +5,22 @@ import {
   ringOf,
   ringCircleOf,
   sectorOf,
+  sectorLabelOf,
   screenToLogical,
   logicalToScreen,
   personAt,
 } from "./geometry";
-import { defaultCircles, type Axes, type Person } from "./model";
+import { defaultCircles, defaultSectors, type Axes, type Person } from "./model";
 
-const axes: Axes = { rotation: 0, sectors: ["Работа", "Семья", "Друзья", "Услуги"] };
+const axes: Axes = { sectors: defaultSectors() };
 
 describe("initials", () => {
-  it("takes first letters of last + first, uppercased", () => {
+  it("defaults to surname-first (Ф+И), uppercased", () => {
     expect(initials("Иванов", "Иван")).toBe("ИИ");
     expect(initials("smith", "john")).toBe("SJ");
+  });
+  it("can put the given-name letter first (И+Ф)", () => {
+    expect(initials("smith", "john", false)).toBe("JS");
   });
   it("handles missing parts", () => {
     expect(initials("", "Иван")).toBe("И");
@@ -54,20 +58,24 @@ describe("ringOf / ringCircleOf", () => {
   });
 });
 
-describe("sectorOf", () => {
-  it("maps quadrants clockwise from top-right (y down)", () => {
-    expect(sectorOf({ x: 100, y: -100 }, axes)).toBe(0); // top-right Работа
-    expect(sectorOf({ x: 100, y: 100 }, axes)).toBe(1); // bottom-right Семья
-    expect(sectorOf({ x: -100, y: 100 }, axes)).toBe(2); // bottom-left Друзья
-    expect(sectorOf({ x: -100, y: -100 }, axes)).toBe(3); // top-left Услуги
+describe("sectorOf / sectorLabelOf", () => {
+  it("maps quadrants to default sector labels (y down)", () => {
+    expect(sectorLabelOf({ x: 100, y: -100 }, axes)).toBe("Работа"); // top-right
+    expect(sectorLabelOf({ x: 100, y: 100 }, axes)).toBe("Семья"); // bottom-right
+    expect(sectorLabelOf({ x: -100, y: 100 }, axes)).toBe("Друзья"); // bottom-left
+    expect(sectorLabelOf({ x: -100, y: -100 }, axes)).toBe("Услуги"); // top-left
   });
 
-  it("respects a 90° rotation", () => {
-    const rotated: Axes = { ...axes, rotation: 90 };
-    // A point that was top-right becomes a different sector once axes rotate.
-    const before = sectorOf({ x: 100, y: -100 }, axes);
-    const after = sectorOf({ x: 100, y: -100 }, rotated);
-    expect(after).not.toBe(before);
+  it("returns a valid index for any point", () => {
+    const i = sectorOf({ x: 5, y: 5 }, axes);
+    expect(i).toBeGreaterThanOrEqual(0);
+    expect(i).toBeLessThan(axes.sectors.length);
+  });
+
+  it("a single sector swallows the whole plane", () => {
+    const one: Axes = { sectors: [{ id: "a", label: "All", start: 0 }] };
+    expect(sectorOf({ x: -3, y: 7 }, one)).toBe(0);
+    expect(sectorLabelOf({ x: -3, y: 7 }, one)).toBe("All");
   });
 });
 
