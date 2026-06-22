@@ -33,9 +33,14 @@ the in-app guide):
 
 ## Features
 
-- **Polar canvas** — center author point, 3 concentric trust rings, 4 sectors;
-  pan, zoom, and drag-to-resize each ring.
+- **Polar canvas** — center author point, 3 concentric trust rings, and any
+  number of angular sectors; pan, zoom, and drag-to-resize each ring.
+- **Movable, splittable sectors** — drag a sector boundary along the arc to make
+  areas bigger/smaller; split a sector ("+") to add a "Новый сектор", or remove
+  one ("×").
 - **Double-click to rename** any sector, ring, or the center name in place.
+- **Connections to the center** — click the central point to start/finish a link
+  so arrows can attach to you.
 - **People** — click empty space to drop a person (Фамилия / Имя / Отчество),
   choose a color (голубой / розовый / серый) and an importance size (обычный /
   важный / ключевой — larger = more important); the node shows ФИ initials.
@@ -47,7 +52,11 @@ the in-app guide):
   first, from the second, or mutual (arrows both ways).
 - **Notes panel** (right) — re-click a person to edit name/color/size, write
   inline notes, delete, or start a connection. **«Перенести в заметку»** creates
-  a Markdown note in the vault and links it (then «Открыть заметку» / «Отвязать»).
+  a Markdown note (optionally via a **Templater** template); **«Привязать
+  заметку»** links an existing note; a note matching the person's name is bound
+  automatically when there's exactly one. Inline preview, «Открыть заметку» /
+  «Отвязать».
+- **Initials order** — node initials as Ф+И (default) or И+Ф, in settings.
 - **Layers** — default «Общая схема связей» plus your own; toggle/filter
   top-left. Layers carry only connections; people positions are shared across
   all layers, so you can view the same network from different angles.
