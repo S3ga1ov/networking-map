@@ -3,7 +3,12 @@ import type { Root } from "react-dom/client";
 import { createMapStore } from "../ui/store";
 import { mountApp } from "../ui/mount";
 import { createObsidianEnv } from "./peopleNotes";
-import { deserialize, serialize, createEmptyDocument } from "../core/model";
+import {
+  deserialize,
+  serialize,
+  createEmptyDocument,
+  defaultSectors,
+} from "../core/model";
 import { makeT, type Lang } from "../ui/i18n";
 import type { StoreApi } from "zustand/vanilla";
 import type { MapState } from "../ui/store";
@@ -69,6 +74,7 @@ export class NetMapView extends TextFileView {
     const env = createObsidianEnv(this.app, {
       folder: this.plugin.settings.peopleFolder,
       writeFrontmatter: this.plugin.settings.writeFrontmatter,
+      templatePath: this.plugin.settings.noteTemplate,
     });
 
     this.store = createMapStore(doc, (serialized) => {
@@ -79,7 +85,9 @@ export class NetMapView extends TextFileView {
 
     this.contentEl.empty();
     this.contentEl.addClass("networking-map-view");
-    this.root = mountApp(this.contentEl, this.store, env, this.plugin.resolveLang());
+    this.root = mountApp(this.contentEl, this.store, env, this.plugin.resolveLang(), {
+      initialsOrder: this.plugin.settings.initialsOrder,
+    });
   }
 
   async onClose(): Promise<void> {
@@ -99,12 +107,12 @@ export function freshNetMapData(lang: Lang): string {
     else if (c.id === "productivity") c.label = t("circle.productivity");
     else if (c.id === "development") c.label = t("circle.development");
   }
-  doc.axes.sectors = [
+  doc.axes.sectors = defaultSectors([
     t("sector.work"),
     t("sector.family"),
     t("sector.friends"),
     t("sector.services"),
-  ];
+  ]);
   doc.layers[0].name = t("layer.default");
   return serialize(doc);
 }

@@ -3,7 +3,13 @@
  * in real vault notes so they are linkable and queryable by Dataview/Bases.
  */
 
-import { type App, normalizePath, Notice, TFile } from "obsidian";
+import {
+  type App,
+  FuzzySuggestModal,
+  normalizePath,
+  Notice,
+  TFile,
+} from "obsidian";
 import type { HostEnv, PersonNoteRef } from "../ui/env";
 
 export interface PeopleNotesOptions {
@@ -11,6 +17,8 @@ export interface PeopleNotesOptions {
   folder: string;
   /** When false, frontmatter passed by the UI is ignored on note creation. */
   writeFrontmatter: boolean;
+  /** Optional Templater template (vault path) applied to new notes. */
+  templatePath: string;
 }
 
 /** Build a HostEnv backed by an Obsidian App. */
@@ -23,6 +31,7 @@ export function createObsidianEnv(
       const ref = await ensurePersonNote(app, options.folder, displayName, {
         seedBody,
         frontmatter: options.writeFrontmatter ? frontmatter : undefined,
+        templatePath: options.templatePath,
       });
       await revealNote(app, ref.path);
       return ref;
@@ -34,6 +43,12 @@ export function createObsidianEnv(
       const file = app.vault.getAbstractFileByPath(normalizePath(path));
       if (!(file instanceof TFile)) return null;
       return app.vault.cachedRead(file);
+    },
+    async pickNote() {
+      return pickNote(app);
+    },
+    async findPersonNote(displayName) {
+      return findPersonNote(app, options.folder, displayName);
     },
     async saveExport(fileName, data) {
       const path = normalizePath(fileName);
@@ -48,7 +63,7 @@ export function createObsidianEnv(
       } else {
         await app.vault.createBinary(path, bytes);
       }
-      new Notice(`Сохранено: ${path}`);
+      new Notice(`Networking Map: ${path}`);
       return path;
     },
     download(fileName, data) {
@@ -75,7 +90,11 @@ async function ensurePersonNote(
   app: App,
   folder: string,
   displayName: string,
-  opts: { seedBody: string; frontmatter?: Record<string, string | number> },
+  opts: {
+    seedBody: string;
+    frontmatter?: Record<string, string | number>;
+    templatePath?: string;
+  },
 ): Promise<PersonNoteRef> {
   const dir = normalizePath(folder);
   if (dir && !app.vault.getAbstractFileByPath(dir)) {
@@ -89,20 +108,106 @@ async function ensurePersonNote(
   const existing = app.vault.getAbstractFileByPath(path);
   if (existing instanceof TFile) return { path };
 
-  const content = buildNoteContent(opts.seedBody, opts.frontmatter);
-  await app.vault.create(path, content);
+  // Body: a Templater template (if configured + available) or the seed text.
+  const templated = await readTemplateRaw(app, opts.templatePath);
+  const file = await app.vault.create(path, templated ?? opts.seedBody);
+  if (templated) await runTemplater(app, file);
+
+  // Frontmatter merged on top of whatever the body/template produced.
+  if (opts.frontmatter && Object.keys(opts.frontmatter).length > 0) {
+    await app.fileManager.processFrontMatter(file, (fm) => {
+      Object.assign(fm, opts.frontmatter);
+    });
+  }
   return { path };
 }
 
-function buildNoteContent(
-  body: string,
-  frontmatter?: Record<string, string | number>,
-): string {
-  if (!frontmatter || Object.keys(frontmatter).length === 0) return body;
-  const lines = Object.entries(frontmatter).map(
-    ([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`,
-  );
-  return `---\n${lines.join("\n")}\n---\n\n${body}`;
+/** Read a template file's raw content, or null when unavailable. */
+async function readTemplateRaw(
+  app: App,
+  templatePath?: string,
+): Promise<string | null> {
+  if (!templatePath || !getTemplater(app)) return null;
+  const file = app.vault.getAbstractFileByPath(normalizePath(templatePath));
+  if (!(file instanceof TFile)) return null;
+  return app.vault.read(file);
+}
+
+/** The Templater instance, or null if the plugin is not installed/enabled. */
+function getTemplater(app: App): { overwrite_file_commands?: unknown } | null {
+  const plugin = (app as unknown as {
+    plugins?: { plugins?: Record<string, { templater?: unknown }> };
+  }).plugins?.plugins?.["templater-obsidian"];
+  const templater = plugin?.templater as
+    | { overwrite_file_commands?: (file: TFile) => Promise<void> }
+    | undefined;
+  return templater ?? null;
+}
+
+/** Expand Templater <% %> commands inside an existing file, best-effort. */
+async function runTemplater(app: App, file: TFile): Promise<void> {
+  const templater = getTemplater(app) as
+    | { overwrite_file_commands?: (file: TFile) => Promise<void> }
+    | null;
+  try {
+    await templater?.overwrite_file_commands?.(file);
+  } catch (e) {
+    console.warn("[networking-map] Templater expansion failed", e);
+  }
+}
+
+async function findPersonNote(
+  app: App,
+  folder: string,
+  displayName: string,
+): Promise<{ kind: "one" | "many" | "none"; path?: string }> {
+  const base = sanitizeFileName(displayName).toLowerCase();
+  const dir = normalizePath(folder);
+  const matches = app.vault
+    .getMarkdownFiles()
+    .filter((f) => (dir ? f.path.startsWith(`${dir}/`) : true))
+    .filter((f) => f.basename.toLowerCase() === base);
+  if (matches.length === 1) return { kind: "one", path: matches[0].path };
+  if (matches.length > 1) return { kind: "many" };
+  return { kind: "none" };
+}
+
+function pickNote(app: App): Promise<string | null> {
+  return new Promise((resolve) => {
+    const files = app.vault.getMarkdownFiles();
+    new NotePickerModal(app, files, resolve).open();
+  });
+}
+
+class NotePickerModal extends FuzzySuggestModal<TFile> {
+  private files: TFile[];
+  private resolve: (path: string | null) => void;
+  private picked = false;
+
+  constructor(app: App, files: TFile[], resolve: (path: string | null) => void) {
+    super(app);
+    this.files = files;
+    this.resolve = resolve;
+    this.setPlaceholder("Выберите заметку для привязки…");
+  }
+
+  getItems(): TFile[] {
+    return this.files;
+  }
+
+  getItemText(file: TFile): string {
+    return file.path;
+  }
+
+  onChooseItem(file: TFile): void {
+    this.picked = true;
+    this.resolve(file.path);
+  }
+
+  onClose(): void {
+    super.onClose();
+    if (!this.picked) this.resolve(null);
+  }
 }
 
 async function revealNote(app: App, path: string): Promise<void> {

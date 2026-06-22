@@ -57,6 +57,23 @@ export function NotesPanel() {
     };
   }, [notePath, env]);
 
+  // Auto-bind a note when exactly one in the folder matches the person's name
+  // (and no inline notes would be lost). Multiple matches → use manual bind.
+  const personId = person?.id;
+  const personName = person ? fullName(person) : "";
+  const hasInlineNotes = (person?.notes ?? "").trim().length > 0;
+  useEffect(() => {
+    if (!personId || notePath || !personName || hasInlineNotes) return;
+    let cancelled = false;
+    void env.findPersonNote(personName).then((res) => {
+      if (cancelled || res.kind !== "one" || !res.path) return;
+      api.getState().apply((doc) => setNotePath(doc, personId, res.path!));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [personId, notePath, personName, hasInlineNotes, env, api]);
+
   if (!person) return null;
 
   const name = fullName(person) || t("person.noName");
@@ -79,6 +96,11 @@ export function NotesPanel() {
     api.getState().setLinkStyle(style);
     api.getState().startLink(person.id);
     setChoosingStyle(false);
+  };
+
+  const bindNote = async () => {
+    const path = await env.pickNote();
+    if (path) api.getState().apply((doc) => setNotePath(doc, person.id, path));
   };
 
   const promoteToNote = async () => {
@@ -216,9 +238,14 @@ export function NotesPanel() {
               onChange={(e) => setNotesDraft(e.target.value)}
               onBlur={commitNotes}
             />
-            <button className="nm-btn" onClick={() => void promoteToNote()}>
-              {t("notes.toNote")}
-            </button>
+            <div className="nm-panel-actions">
+              <button className="nm-btn" onClick={() => void promoteToNote()}>
+                {t("notes.toNote")}
+              </button>
+              <button className="nm-btn" onClick={() => void bindNote()}>
+                {t("notes.bind")}
+              </button>
+            </div>
           </>
         )}
       </div>
