@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/S3ga1ov/networking-map/compare/0.4.0...0.5.0) (2026-06-23)
+
+
+### Features
+
+* add on-canvas notes and a create chooser ([1947c54](https://github.com/S3ga1ov/networking-map/commit/1947c5497baf569f343fe2ec0a6675246ae2f4ae))
+* name exports after the map file and export SVG transparently ([76de85a](https://github.com/S3ga1ov/networking-map/commit/76de85aa090e6b81dbb16923c9bc980cfb4fc7da))
+
 ## [0.4.0](https://github.com/S3ga1ov/networking-map/compare/0.3.1...0.4.0) (2026-06-22)
 
 
