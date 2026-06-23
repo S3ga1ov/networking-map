@@ -3,12 +3,13 @@ import { useMapStore, useMapStoreApi } from "./StoreContext";
 import { useEnv } from "./EnvContext";
 import { useT } from "./LangContext";
 import { useSurnameFirst } from "./PrefsContext";
-import {
-  exportBaseName,
-  exportJson,
-  renderPngBlob,
-  renderSvgString,
-} from "../core/exporters";
+import { exportJson, renderPngBlob, renderSvgString } from "../core/exporters";
+
+/** Make a filesystem-safe base name from the map's file name. */
+function safeBase(name: string): string {
+  const cleaned = name.replace(/[\\/:*?"<>|]/g, " ").trim();
+  return cleaned.length > 0 ? cleaned : "Networking map";
+}
 
 /** Top-right toolbar: zoom, undo/redo, and export. */
 export function Toolbar() {
@@ -22,12 +23,16 @@ export function Toolbar() {
   const doExport = async (kind: "png" | "svg" | "json") => {
     setMenuOpen(false);
     const doc = api.getState().doc;
-    const base = exportBaseName(doc);
+    const base = safeBase(env.mapBaseName());
     try {
       if (kind === "json") {
-        await env.saveExport(`${base}.export.json`, exportJson(doc));
+        await env.saveExport(`${base}.json`, exportJson(doc));
       } else if (kind === "svg") {
-        await env.saveExport(`${base}.svg`, renderSvgString(doc, { surnameFirst }));
+        // SVG exports with a transparent background.
+        await env.saveExport(
+          `${base}.svg`,
+          renderSvgString(doc, { surnameFirst, transparent: true }),
+        );
       } else {
         const blob = await renderPngBlob(doc, 2, { surnameFirst });
         await env.saveExport(`${base}.png`, blob);

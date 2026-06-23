@@ -43,17 +43,28 @@ function esc(s: string): string {
 /** Compute a square content bound (half-extent) centered on the origin. */
 function halfExtent(doc: NetMapDocument): number {
   const maxRing = Math.max(...doc.circles.map((c) => c.radius), 100) + 60;
-  let people = 0;
+  let content = 0;
   for (const p of doc.people) {
     const r = radiusOf(p.size);
-    people = Math.max(people, Math.abs(p.x) + r, Math.abs(p.y) + r);
+    content = Math.max(content, Math.abs(p.x) + r, Math.abs(p.y) + r);
   }
-  return Math.max(maxRing, people) + 20;
+  for (const n of doc.mapNotes) {
+    content = Math.max(
+      content,
+      Math.abs(n.x),
+      Math.abs(n.x + n.width),
+      Math.abs(n.y),
+      Math.abs(n.y + n.height),
+    );
+  }
+  return Math.max(maxRing, content) + 20;
 }
 
 export interface SvgExportOptions {
   /** Surname initial first (Ф+И). Defaults to true. */
   surnameFirst?: boolean;
+  /** Omit the white background rectangle (for a transparent SVG). */
+  transparent?: boolean;
 }
 
 /** Build a complete, standalone SVG document string for the map. */
@@ -70,7 +81,9 @@ export function renderSvgString(
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(size)}" height="${Math.round(size)}" viewBox="${vb}">`,
   );
-  parts.push(`<rect x="${-half}" y="${-half}" width="${size}" height="${size}" fill="#ffffff"/>`);
+  if (!opts.transparent) {
+    parts.push(`<rect x="${-half}" y="${-half}" width="${size}" height="${size}" fill="#ffffff"/>`);
+  }
 
   // Arrowhead markers, one per line color.
   const marker = (id: string, fill: string) =>
@@ -153,8 +166,35 @@ export function renderSvgString(
     parts.push(`</g>`);
   }
 
+  // Map notes (stickies) on top.
+  for (const note of doc.mapNotes) {
+    parts.push(renderMapNote(note));
+  }
+
   parts.push(`</svg>`);
   return parts.join("");
+}
+
+const MAPNOTE_FILL = "#ececec";
+const MAPNOTE_STROKE = "#b9b9b9";
+const MAPNOTE_TEXT = "#2b2b2b";
+
+function renderMapNote(note: NetMapDocument["mapNotes"][number]): string {
+  const pad = 8;
+  const fontSize = 13;
+  const lineHeight = fontSize * 1.35;
+  const out: string[] = [];
+  out.push(
+    `<rect x="${note.x}" y="${note.y}" width="${note.width}" height="${note.height}" rx="6" fill="${MAPNOTE_FILL}" stroke="${MAPNOTE_STROKE}" stroke-width="1"/>`,
+  );
+  const maxLines = Math.max(0, Math.floor((note.height - pad) / lineHeight));
+  const lines = note.text.split("\n").slice(0, maxLines);
+  lines.forEach((line, i) => {
+    out.push(
+      `<text x="${note.x + pad}" y="${(note.y + pad + (i + 0.85) * lineHeight).toFixed(1)}" font-size="${fontSize}" fill="${MAPNOTE_TEXT}">${esc(line)}</text>`,
+    );
+  });
+  return out.join("");
 }
 
 function renderAxes(doc: NetMapDocument, half: number): string {

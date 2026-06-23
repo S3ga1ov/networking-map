@@ -26,6 +26,9 @@ export interface HostEnv {
   /** Open a picker to choose an existing note; resolves to a path or null. */
   pickNote: () => Promise<string | null>;
 
+  /** The current map's file base name (no extension), for export naming. */
+  mapBaseName: () => string;
+
   /** Save bytes as a file in the vault (used by image/JSON export). */
   saveExport: (fileName: string, data: Blob | string) => Promise<string>;
 
@@ -41,6 +44,7 @@ export const noopEnv: HostEnv = {
   openPersonNote: async ({ displayName }) => ({ path: `People/${displayName}.md` }),
   revealNote: async () => {},
   pickNote: async () => null,
+  mapBaseName: () => "Networking map",
   saveExport: async (fileName) => fileName,
   download: () => {},
   notify: () => {},

@@ -74,6 +74,7 @@ export class NetMapView extends TextFileView {
     const env = createObsidianEnv(this.app, {
       folder: this.plugin.settings.peopleFolder,
       templatePath: this.plugin.settings.noteTemplate,
+      mapBaseName: () => this.file?.basename ?? "Networking map",
     });
 
     this.store = createMapStore(doc, (serialized) => {

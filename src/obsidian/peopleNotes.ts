@@ -17,6 +17,8 @@ export interface PeopleNotesOptions {
   folder: string;
   /** Optional Templater template (vault path) applied to new notes. */
   templatePath: string;
+  /** Current map's file base name (no extension), for export naming. */
+  mapBaseName: () => string;
 }
 
 /** Build a HostEnv backed by an Obsidian App. */
@@ -38,6 +40,9 @@ export function createObsidianEnv(
     },
     async pickNote() {
       return pickNote(app);
+    },
+    mapBaseName() {
+      return options.mapBaseName();
     },
     async saveExport(fileName, data) {
       const path = normalizePath(fileName);
