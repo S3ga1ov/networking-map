@@ -7,7 +7,10 @@
 export type Lang = "ru" | "en";
 
 const en = {
-  // create-person popup
+  // create chooser + person popup
+  "create.choosePerson": "Person",
+  "create.chooseNote": "Note",
+  "mapnote.placeholder": "Note…",
   "create.title": "New person",
   "field.last": "Last name",
   "field.first": "First name",
@@ -27,6 +30,7 @@ const en = {
   "confirm.sector": "Remove this sector?",
   "confirm.layer": "Delete this layer and all its connections?",
   "confirm.connection": "Delete this connection?",
+  "confirm.mapNote": "Delete this note from the map?",
 
   // colors
   "color.blue": "Blue",
@@ -112,6 +116,9 @@ const en = {
 export type I18nKey = keyof typeof en;
 
 const ru: Record<I18nKey, string> = {
+  "create.choosePerson": "Человек",
+  "create.chooseNote": "Заметка",
+  "mapnote.placeholder": "Заметка…",
   "create.title": "Новый человек",
   "field.last": "Фамилия",
   "field.first": "Имя",
@@ -130,6 +137,7 @@ const ru: Record<I18nKey, string> = {
   "confirm.sector": "Удалить этот сектор?",
   "confirm.layer": "Удалить слой и все его связи?",
   "confirm.connection": "Удалить эту связь?",
+  "confirm.mapNote": "Удалить эту заметку с карты?",
 
   "color.blue": "Голубой",
   "color.pink": "Розовый",

@@ -15,11 +15,16 @@ import {
 } from "../core/model";
 import {
   addLink,
+  addMapNote,
   addPerson as addPersonCmd,
   clampCircleRadius,
   clampSectorStart,
+  moveMapNote,
   movePerson,
+  removeMapNote as removeMapNoteCmd,
   resizeCircle,
+  resizeMapNote,
+  setMapNoteText as setMapNoteTextCmd,
   setSectorStart,
   setViewport as setViewportCmd,
   type NewPersonInput,
@@ -29,8 +34,10 @@ import type { Point } from "../core/geometry";
 export type InteractionMode = "idle" | "link";
 
 export interface PendingCreate {
-  /** Logical position where the new person will be placed. */
+  /** Logical position where the new element will be placed. */
   at: Point;
+  /** "choose" shows the person/note chooser; "person" shows the person form. */
+  stage: "choose" | "person";
 }
 
 export interface MapState {
@@ -59,6 +66,14 @@ export interface MapState {
   circleResize: { id: string; radius: number } | null;
   /** Live boundary angle of the sector being dragged (not yet committed). */
   sectorDrag: { id: string; start: number } | null;
+  /** Currently selected map note (shows its controls), or null. */
+  selectedMapNoteId: string | null;
+  /** A just-created map note that should grab focus, or null. */
+  editingMapNoteId: string | null;
+  /** Live position of a map note being dragged (not yet committed). */
+  mapNoteDrag: { id: string; x: number; y: number } | null;
+  /** Live size of a map note being resized (not yet committed). */
+  mapNoteResize: { id: string; width: number; height: number } | null;
 
   // ---- actions ----
   /** Apply a pure command, recording the previous doc for undo + persisting. */
@@ -72,6 +87,8 @@ export interface MapState {
   selectLink: (id: string | null) => void;
   beginCreate: (at: Point) => void;
   cancelCreate: () => void;
+  /** Advance the create chooser to the person form. */
+  choosePerson: () => void;
   /** Create a person, select it, and close the create popup. */
   createPerson: (input: NewPersonInput) => void;
   setLinkStyle: (style: LinkStyle) => void;
@@ -103,6 +120,19 @@ export interface MapState {
   dragSectorTo: (id: string, start: number) => void;
   /** Commit the in-progress sector drag (one history entry). */
   commitSectorDrag: () => void;
+
+  // ---- map notes ----
+  /** Create a map note at the chooser point, select it for editing. */
+  createMapNote: (at: Point) => void;
+  selectMapNote: (id: string | null) => void;
+  /** Persist a map note's text (one history entry). */
+  setMapNoteText: (id: string, text: string) => void;
+  /** Delete a map note. */
+  removeMapNote: (id: string) => void;
+  dragMapNoteTo: (id: string, x: number, y: number) => void;
+  commitMapNoteDrag: () => void;
+  resizeMapNoteTo: (id: string, width: number, height: number) => void;
+  commitMapNoteResize: () => void;
 }
 
 /** Callback the Obsidian view installs to write serialized state to the file. */
@@ -125,6 +155,10 @@ export function createMapStore(
     drag: null,
     circleResize: null,
     sectorDrag: null,
+    selectedMapNoteId: null,
+    editingMapNoteId: null,
+    mapNoteDrag: null,
+    mapNoteResize: null,
 
     apply: (fn) => {
       const prev = get().doc;
@@ -145,6 +179,10 @@ export function createMapStore(
         mode: "idle",
         pendingLinkSource: null,
         pendingCreate: null,
+        selectedMapNoteId: null,
+        editingMapNoteId: null,
+        mapNoteDrag: null,
+        mapNoteResize: null,
       });
     },
 
@@ -165,12 +203,31 @@ export function createMapStore(
     },
 
     selectPerson: (id) =>
-      set({ selectedPersonId: id, selectedLinkId: null, pendingCreate: null }),
+      set({
+        selectedPersonId: id,
+        selectedLinkId: null,
+        selectedMapNoteId: null,
+        pendingCreate: null,
+      }),
     selectLink: (id) =>
-      set({ selectedLinkId: id, selectedPersonId: null, pendingCreate: null }),
+      set({
+        selectedLinkId: id,
+        selectedPersonId: null,
+        selectedMapNoteId: null,
+        pendingCreate: null,
+      }),
     beginCreate: (at) =>
-      set({ pendingCreate: { at }, selectedPersonId: null, selectedLinkId: null }),
+      set({
+        pendingCreate: { at, stage: "choose" },
+        selectedPersonId: null,
+        selectedLinkId: null,
+        selectedMapNoteId: null,
+      }),
     cancelCreate: () => set({ pendingCreate: null }),
+    choosePerson: () => {
+      const pc = get().pendingCreate;
+      if (pc) set({ pendingCreate: { ...pc, stage: "person" } });
+    },
     createPerson: (input) => {
       const prev = get().doc;
       const { doc, person } = addPersonCmd(prev, input);
@@ -249,6 +306,49 @@ export function createMapStore(
       set({ sectorDrag: null });
       if (!sectorDrag) return;
       get().apply((doc) => setSectorStart(doc, sectorDrag.id, sectorDrag.start));
+    },
+
+    createMapNote: (at) => {
+      const prev = get().doc;
+      const { doc, note } = addMapNote(prev, at.x, at.y);
+      get().history.push(prev);
+      set({
+        doc,
+        pendingCreate: null,
+        selectedMapNoteId: note.id,
+        editingMapNoteId: note.id,
+      });
+      persist(serialize(doc));
+    },
+    selectMapNote: (id) =>
+      set({
+        selectedMapNoteId: id,
+        editingMapNoteId: null,
+        selectedPersonId: null,
+        selectedLinkId: null,
+      }),
+    setMapNoteText: (id, text) =>
+      get().apply((doc) => setMapNoteTextCmd(doc, id, text)),
+    removeMapNote: (id) => {
+      get().apply((doc) => removeMapNoteCmd(doc, id));
+      set({ selectedMapNoteId: null, editingMapNoteId: null });
+    },
+    dragMapNoteTo: (id, x, y) => set({ mapNoteDrag: { id, x, y } }),
+    commitMapNoteDrag: () => {
+      const { mapNoteDrag } = get();
+      set({ mapNoteDrag: null });
+      if (!mapNoteDrag) return;
+      get().apply((doc) => moveMapNote(doc, mapNoteDrag.id, mapNoteDrag.x, mapNoteDrag.y));
+    },
+    resizeMapNoteTo: (id, width, height) =>
+      set({ mapNoteResize: { id, width, height } }),
+    commitMapNoteResize: () => {
+      const { mapNoteResize } = get();
+      set({ mapNoteResize: null });
+      if (!mapNoteResize) return;
+      get().apply((doc) =>
+        resizeMapNote(doc, mapNoteResize.id, mapNoteResize.width, mapNoteResize.height),
+      );
     },
   }));
 }

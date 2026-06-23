@@ -51,6 +51,7 @@ export function App() {
         state.cancelLink();
         state.cancelCreate();
         state.selectPerson(null);
+        state.selectMapNote(null);
       }
     };
     window.addEventListener("keydown", onKey);

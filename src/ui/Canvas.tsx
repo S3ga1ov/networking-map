@@ -11,7 +11,9 @@ import { TrustCircles } from "./scene/TrustCircles";
 import { AxesOverlay } from "./scene/AxesOverlay";
 import { PeopleLayer } from "./scene/PeopleLayer";
 import { LinksLayer } from "./scene/LinksLayer";
+import { MapNotesLayer } from "./scene/MapNotesLayer";
 import { CreatePersonPopup } from "./CreatePersonPopup";
+import { CreateChooser } from "./CreateChooser";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 4;
@@ -132,7 +134,13 @@ export function Canvas() {
           <PeopleLayer center={center} svg={svgRef} />
         </g>
       </svg>
-      {pendingCreate && (
+      <MapNotesLayer center={center} svg={svgRef} />
+      {pendingCreate?.stage === "choose" && (
+        <CreateChooser
+          screen={logicalToScreen(pendingCreate.at, viewport, center)}
+        />
+      )}
+      {pendingCreate?.stage === "person" && (
         <CreatePersonPopup
           screen={logicalToScreen(pendingCreate.at, viewport, center)}
         />

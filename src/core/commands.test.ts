@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   addLayer,
   addLink,
+  addMapNote,
   addNoteLink,
   addPerson,
   CIRCLE_GAP,
+  moveMapNote,
+  removeMapNote,
+  resizeMapNote,
+  setMapNoteText,
   deleteLayer,
   deletePerson,
   MIN_CIRCLE_RADIUS,
@@ -250,6 +255,28 @@ describe("migration", () => {
     expect(p.notePaths).toEqual(["People/A.md"]);
     expect("notes" in p).toBe(false);
     expect("notePath" in p).toBe(false);
+  });
+});
+
+describe("map notes", () => {
+  it("adds, edits, moves, resizes and removes a map note", () => {
+    let doc = createEmptyDocument();
+    const res = addMapNote(doc, 100, 50);
+    doc = res.doc;
+    expect(doc.mapNotes).toHaveLength(1);
+    const id = res.note.id;
+
+    doc = setMapNoteText(doc, id, "hello");
+    doc = moveMapNote(doc, id, 200, 80);
+    doc = resizeMapNote(doc, id, 10, 10); // below min → clamped
+    const n = doc.mapNotes[0];
+    expect(n.text).toBe("hello");
+    expect(n).toMatchObject({ x: 200, y: 80 });
+    expect(n.width).toBeGreaterThanOrEqual(80);
+    expect(n.height).toBeGreaterThanOrEqual(60);
+
+    doc = removeMapNote(doc, id);
+    expect(doc.mapNotes).toHaveLength(0);
   });
 });
 

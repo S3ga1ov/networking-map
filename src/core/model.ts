@@ -94,6 +94,18 @@ export interface Link {
   direction: LinkDirection;
 }
 
+/** A free-floating text note placed directly on the map (a sticky). */
+export interface MapNote {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  /** Reserved for future colors; only "gray" for now. */
+  color: "gray";
+}
+
 /** Pan/zoom state of the canvas. */
 export interface Viewport {
   zoom: number;
@@ -118,9 +130,13 @@ export interface NetMapDocument {
   layers: Layer[];
   activeLayerId: string;
   links: Link[];
+  mapNotes: MapNote[];
 }
 
 export const DEFAULT_LAYER_ID = "default";
+
+/** Default size of a new map note, in logical units. */
+export const DEFAULT_MAP_NOTE = { width: 180, height: 110 };
 
 /** Default sector labels, by quadrant (top-right, bottom-right, BL, TL). */
 export const DEFAULT_SECTORS: [string, string, string, string] = [
@@ -173,6 +189,7 @@ export function createEmptyDocument(
     ],
     activeLayerId: DEFAULT_LAYER_ID,
     links: [],
+    mapNotes: [],
   };
 }
 
@@ -221,6 +238,9 @@ export function migrate(input: Partial<NetMapDocument>): NetMapDocument {
           ...l,
           direction: (l as Partial<Link>).direction ?? ("none" as const),
         }))
+      : [],
+    mapNotes: Array.isArray(input.mapNotes)
+      ? input.mapNotes.map(normalizeMapNote)
       : [],
   };
 
@@ -278,6 +298,18 @@ function normalizePerson(p: Partial<Person>): Person {
     y: p.y ?? 0,
     notePaths: migrateNotePaths(p),
     createdAt: p.createdAt ?? new Date().toISOString(),
+  };
+}
+
+function normalizeMapNote(n: Partial<MapNote>): MapNote {
+  return {
+    id: n.id ?? generateId("note"),
+    x: n.x ?? 0,
+    y: n.y ?? 0,
+    width: Math.max(80, n.width ?? DEFAULT_MAP_NOTE.width),
+    height: Math.max(60, n.height ?? DEFAULT_MAP_NOTE.height),
+    text: n.text ?? "",
+    color: "gray",
   };
 }
 

@@ -5,6 +5,7 @@
  */
 
 import {
+  DEFAULT_MAP_NOTE,
   generateId,
   normAngle,
   type Circle,
@@ -12,6 +13,7 @@ import {
   type Link,
   type LinkDirection,
   type LinkStyle,
+  type MapNote,
   type NetMapDocument,
   type Person,
   type PersonColor,
@@ -351,6 +353,61 @@ export function setAuthor(doc: NetMapDocument, author: string): NetMapDocument {
   return { ...doc, meta: { ...doc.meta, author } };
 }
 
+// ---- map notes (free-floating stickies) ------------------------------------
+
+export const MIN_MAP_NOTE_SIZE = { width: 80, height: 60 };
+
+export function addMapNote(
+  doc: NetMapDocument,
+  x: number,
+  y: number,
+): { doc: NetMapDocument; note: MapNote } {
+  const note: MapNote = {
+    id: generateId("note"),
+    x,
+    y,
+    width: DEFAULT_MAP_NOTE.width,
+    height: DEFAULT_MAP_NOTE.height,
+    text: "",
+    color: "gray",
+  };
+  return { doc: { ...doc, mapNotes: [...doc.mapNotes, note] }, note };
+}
+
+export function moveMapNote(
+  doc: NetMapDocument,
+  id: string,
+  x: number,
+  y: number,
+): NetMapDocument {
+  return mapMapNote(doc, id, (n) => ({ ...n, x, y }));
+}
+
+export function resizeMapNote(
+  doc: NetMapDocument,
+  id: string,
+  width: number,
+  height: number,
+): NetMapDocument {
+  return mapMapNote(doc, id, (n) => ({
+    ...n,
+    width: Math.max(MIN_MAP_NOTE_SIZE.width, width),
+    height: Math.max(MIN_MAP_NOTE_SIZE.height, height),
+  }));
+}
+
+export function setMapNoteText(
+  doc: NetMapDocument,
+  id: string,
+  text: string,
+): NetMapDocument {
+  return mapMapNote(doc, id, (n) => ({ ...n, text }));
+}
+
+export function removeMapNote(doc: NetMapDocument, id: string): NetMapDocument {
+  return { ...doc, mapNotes: doc.mapNotes.filter((n) => n.id !== id) };
+}
+
 export function setViewport(
   doc: NetMapDocument,
   viewport: Partial<Viewport>,
@@ -368,6 +425,17 @@ function mapPerson(
   return {
     ...doc,
     people: doc.people.map((p) => (p.id === id ? fn(p) : p)),
+  };
+}
+
+function mapMapNote(
+  doc: NetMapDocument,
+  id: string,
+  fn: (n: MapNote) => MapNote,
+): NetMapDocument {
+  return {
+    ...doc,
+    mapNotes: doc.mapNotes.map((n) => (n.id === id ? fn(n) : n)),
   };
 }
 
